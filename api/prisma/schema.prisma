@@ -1,0 +1,138 @@
+// FlowDesk data model
+// ERP billing-approval workflow: Sales submits -> Accounts reviews -> Invoice issued.
+generator client {
+  provider = "prisma-client-js"
+  // `native` for local dev; the musl/openssl-3 target matches the Alpine runtime image.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Application roles. Drives RBAC across the API.
+enum Role {
+  SALES // Creates and submits billing requests
+  ACCOUNTS // Reviews (approves/rejects) requests and manages invoices
+  MANAGER // Read-only oversight: dashboards and metrics
+}
+
+/// Lifecycle of a billing request. Transitions are enforced server-side
+/// by the workflow state machine (see billing-requests/workflow.ts).
+enum BillingRequestStatus {
+  DRAFT // Editable by the owning Sales user
+  SUBMITTED // Awaiting Accounts review
+  APPROVED // Accepted by Accounts; invoice generation enqueued
+  REJECTED // Declined by Accounts with a reason; owner may revise
+  INVOICED // Invoice has been generated for this request
+}
+
+enum InvoiceStatus {
+  ISSUED
+  PAID
+  VOID
+}
+
+/// Domain-level audit actions recorded on the immutable audit trail.
+enum AuditAction {
+  CREATED
+  UPDATED
+  SUBMITTED
+  APPROVED
+  REJECTED
+  RESUBMITTED
+  INVOICE_GENERATED
+  INVOICE_PAID
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  role         Role
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdRequests  BillingRequest[] @relation("RequestCreatedBy")
+  reviewedRequests BillingRequest[] @relation("RequestReviewedBy")
+  auditEntries     AuditLog[]
+
+  @@map("users")
+}
+
+model BillingRequest {
+  id           String               @id @default(uuid())
+  // Race-free sequence; the human reference (BR-YYYY-0001) is derived from it.
+  number       Int                  @unique @default(autoincrement())
+  title        String
+  customerName String
+  // Stored in minor units (cents) to avoid floating-point money bugs.
+  amountCents  Int
+  currency     String               @default("USD")
+  description  String?
+  status       BillingRequestStatus @default(DRAFT)
+  rejectionReason String?
+
+  createdById String
+  createdBy   User   @relation("RequestCreatedBy", fields: [createdById], references: [id])
+
+  reviewedById String?
+  reviewedBy   User?   @relation("RequestReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+
+  invoice Invoice?
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  auditLogs AuditLog[]
+
+  @@index([status])
+  @@index([createdById])
+  @@map("billing_requests")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  // Race-free sequence; the human invoice number (INV-YYYY-0001) is derived from it.
+  number        Int           @unique @default(autoincrement())
+  amountCents   Int
+  currency      String        @default("USD")
+  status        InvoiceStatus @default(ISSUED)
+  issuedAt      DateTime      @default(now())
+  dueDate       DateTime
+  paidAt        DateTime?
+
+  billingRequestId String         @unique
+  billingRequest   BillingRequest @relation(fields: [billingRequestId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@map("invoices")
+}
+
+/// Append-only audit trail. One row per meaningful domain action.
+model AuditLog {
+  id         String      @id @default(uuid())
+  action     AuditAction
+  fromStatus String?
+  toStatus   String?
+  note       String?
+  // Flexible bag for action-specific context (e.g. invoiceNumber, changed fields).
+  metadata   Json?
+
+  billingRequestId String
+  billingRequest   BillingRequest @relation(fields: [billingRequestId], references: [id])
+
+  // Nullable: system-generated actions (e.g. async invoice generation) have no human actor.
+  actorId String?
+  actor   User?   @relation(fields: [actorId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([billingRequestId])
+  @@map("audit_logs")
+}
