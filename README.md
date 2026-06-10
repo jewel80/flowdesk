@@ -24,21 +24,22 @@ trail**, so at any moment you can answer *who did what, when, and why*.
 2. [Requirements coverage (Option 1)](#requirements-coverage-option-1)
 3. [Quick start (Docker)](#quick-start-docker)
 4. [Demo accounts](#demo-accounts)
-5. [Key user flows](#key-user-flows)
-6. [Architecture](#architecture)
-7. [Read/write database splitting](#readwrite-database-splitting)
-8. [Tech stack & rationale](#tech-stack--rationale)
-9. [Data model](#data-model)
-10. [The workflow state machine](#the-workflow-state-machine)
-11. [API reference](#api-reference)
-12. [Project structure](#project-structure)
-13. [Environments & npm scripts](#environments--npm-scripts)
-14. [Troubleshooting](#troubleshooting)
-15. [Testing](#testing)
-16. [Security & access control](#security--access-control)
-17. [Assumptions](#assumptions)
-18. [What I'd improve with more time](#what-id-improve-with-more-time)
-19. [AI-assisted development note](#ai-assisted-development-note)
+5. [Screenshots](#screenshots)
+6. [Key user flows](#key-user-flows)
+7. [Architecture](#architecture)
+8. [Read/write database splitting](#readwrite-database-splitting)
+9. [Tech stack & rationale](#tech-stack--rationale)
+10. [Data model](#data-model)
+11. [The workflow state machine](#the-workflow-state-machine)
+12. [API reference](#api-reference)
+13. [Project structure](#project-structure)
+14. [Environments & npm scripts](#environments--npm-scripts)
+15. [Troubleshooting](#troubleshooting)
+16. [Testing](#testing)
+17. [Security & access control](#security--access-control)
+18. [Assumptions](#assumptions)
+19. [What I'd improve with more time](#what-id-improve-with-more-time)
+20. [AI-assisted development note](#ai-assisted-development-note)
 
 ---
 
@@ -154,6 +155,27 @@ them with one-click fill.
 | **Sales** | `sales2@flowdesk.dev` | (a second sales user, to show ownership scoping) |
 | **Accounts** | `accounts@flowdesk.dev` | Approve / reject requests, mark invoices paid |
 | **Manager** | `manager@flowdesk.dev` | Read-only org-wide dashboards & metrics |
+
+---
+
+## Screenshots
+
+A visual tour of the main interfaces (running on the seeded demo data).
+
+|  |  |
+| :---: | :---: |
+| **Sign in** (role-based demo accounts) | **Manager dashboard** (org-wide metrics) |
+| ![Sign in](docs/screenshots/01-login.png) | ![Manager dashboard](docs/screenshots/02-dashboard.png) |
+| **Billing requests** (list + status filters) | **New request** (Sales creates a draft) |
+| ![Billing requests list](docs/screenshots/03-requests-list.png) | ![New request form](docs/screenshots/04-new-request.png) |
+| **Approval page** (Accounts approves / rejects) | **Request detail + audit trail** |
+| ![Approval page](docs/screenshots/06-approval.png) | ![Request detail and audit timeline](docs/screenshots/05-request-detail.png) |
+| **Invoices** (auto-generated on approval) | **Invoice detail** (Accounts marks paid) |
+| ![Invoices list](docs/screenshots/07-invoices-list.png) | ![Invoice detail](docs/screenshots/08-invoice-detail.png) |
+
+> Screenshots are regenerated from the live app with
+> [`web/scripts/screenshots.mjs`](web/scripts/screenshots.mjs) (Playwright) — run
+> it with the stack up to refresh them.
 
 ---
 
