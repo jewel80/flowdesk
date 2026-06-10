@@ -10,15 +10,16 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  // All user lookups are reads → routed to a replica (falls back to primary).
   findByEmail(email: string): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: { email } });
+    return this.prisma.reader.user.findUnique({ where: { email } });
   }
 
   findById(id: string): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: { id } });
+    return this.prisma.reader.user.findUnique({ where: { id } });
   }
 
   findMany(args?: Prisma.UserFindManyArgs): Promise<User[]> {
-    return this.prisma.user.findMany(args);
+    return this.prisma.reader.user.findMany(args);
   }
 }

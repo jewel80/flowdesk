@@ -35,7 +35,7 @@ export class InvoicesService {
    * the request (e.g. a retried job) the existing one is returned unchanged.
    */
   async generateForRequest(billingRequestId: string, approvedByUserId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.primary.$transaction(async (tx) => {
       const request = await tx.billingRequest.findUnique({
         where: { id: billingRequestId },
       });
@@ -128,7 +128,7 @@ export class InvoicesService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.primary.$transaction(async (tx) => {
       const updated = await this.repository.update(
         id,
         { status: InvoiceStatus.PAID, paidAt: new Date() },

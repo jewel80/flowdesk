@@ -23,3 +23,8 @@ npm-debug.log*
 
 # Prisma local engine cache
 api/prisma/*.db
+
+# Playwright (frontend E2E) artifacts
+web/playwright-report/
+web/test-results/
+web/playwright/.cache/

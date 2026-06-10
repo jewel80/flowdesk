@@ -11,6 +11,8 @@ export const envValidationSchema = Joi.object({
   PORT: Joi.number().default(3000),
   CORS_ORIGIN: Joi.string().default('*'),
   DATABASE_URL: Joi.string().required(),
+  // Optional comma-separated list of read-replica URLs. Empty → reads use primary.
+  DATABASE_REPLICA_URLS: Joi.string().allow('').optional(),
   JWT_SECRET: Joi.string().min(8).required(),
   JWT_EXPIRES_IN: Joi.string().default('1d'),
   REDIS_HOST: Joi.string().default('localhost'),

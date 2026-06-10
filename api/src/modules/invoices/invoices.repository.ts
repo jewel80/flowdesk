@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 const INVOICE_INCLUDE = {
@@ -15,13 +15,16 @@ const INVOICE_INCLUDE = {
   },
 } satisfies Prisma.InvoiceInclude;
 
-type Client = PrismaService | Prisma.TransactionClient;
+// Any client that can issue queries: the primary, a read replica, or a tx client.
+type Client = PrismaClient | Prisma.TransactionClient;
 
 @Injectable()
 export class InvoicesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findByRequestId(billingRequestId: string, client: Client = this.prisma) {
+  // Read: defaults to a replica, but callers inside a write transaction (e.g. the
+  // idempotency check in invoice generation) pass the tx client to hit the primary.
+  findByRequestId(billingRequestId: string, client: Client = this.prisma.reader) {
     return client.invoice.findUnique({
       where: { billingRequestId },
       include: INVOICE_INCLUDE,
@@ -29,22 +32,22 @@ export class InvoicesRepository {
   }
 
   findById(id: string) {
-    return this.prisma.invoice.findUnique({
+    return this.prisma.reader.invoice.findUnique({
       where: { id },
       include: INVOICE_INCLUDE,
     });
   }
 
-  create(data: Prisma.InvoiceCreateInput, client: Client = this.prisma) {
+  create(data: Prisma.InvoiceCreateInput, client: Client = this.prisma.primary) {
     return client.invoice.create({ data, include: INVOICE_INCLUDE });
   }
 
-  update(id: string, data: Prisma.InvoiceUpdateInput, client: Client = this.prisma) {
+  update(id: string, data: Prisma.InvoiceUpdateInput, client: Client = this.prisma.primary) {
     return client.invoice.update({ where: { id }, data, include: INVOICE_INCLUDE });
   }
 
   findMany(where: Prisma.InvoiceWhereInput) {
-    return this.prisma.invoice.findMany({
+    return this.prisma.reader.invoice.findMany({
       where,
       include: INVOICE_INCLUDE,
       orderBy: { issuedAt: 'desc' },

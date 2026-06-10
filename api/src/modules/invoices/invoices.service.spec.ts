@@ -40,7 +40,7 @@ describe('InvoicesService.generateForRequest', () => {
         update: jest.fn().mockResolvedValue(undefined),
       },
     };
-    prisma = { $transaction: jest.fn((fn: any) => fn(tx)) };
+    prisma = { primary: { $transaction: jest.fn((fn: any) => fn(tx)) } };
     repository = { findByRequestId: jest.fn(), create: jest.fn() };
     auditService = { record: jest.fn().mockResolvedValue(undefined) };
     config = { get: jest.fn().mockReturnValue(30) };

@@ -12,7 +12,7 @@ export class HealthController {
   async check() {
     let database = 'down';
     try {
-      await this.prisma.$queryRaw`SELECT 1`;
+      await this.prisma.primary.$queryRaw`SELECT 1`;
       database = 'up';
     } catch {
       database = 'down';

@@ -26,19 +26,21 @@ export class MetricsService {
       ? { billingRequest: { createdById: user.userId } }
       : {};
 
+    // Dashboard aggregates are read-only and well suited to a read replica.
+    const reader = this.prisma.reader;
     const [grouped, totalRequests, issuedAgg, paidAgg] = await Promise.all([
-      this.prisma.billingRequest.groupBy({
+      reader.billingRequest.groupBy({
         by: ['status'],
         where: requestWhere,
         _count: { _all: true },
       }),
-      this.prisma.billingRequest.count({ where: requestWhere }),
-      this.prisma.invoice.aggregate({
+      reader.billingRequest.count({ where: requestWhere }),
+      reader.invoice.aggregate({
         where: { ...invoiceWhere, status: InvoiceStatus.ISSUED },
         _sum: { amountCents: true },
         _count: { _all: true },
       }),
-      this.prisma.invoice.aggregate({
+      reader.invoice.aggregate({
         where: { ...invoiceWhere, status: InvoiceStatus.PAID },
         _sum: { amountCents: true },
         _count: { _all: true },

@@ -25,7 +25,7 @@ export class AuditService {
     input: RecordAuditInput,
     tx?: Prisma.TransactionClient,
   ): Promise<void> {
-    const client = tx ?? this.prisma;
+    const client = tx ?? this.prisma.primary;
     await client.auditLog.create({
       data: {
         billingRequestId: input.billingRequestId,
@@ -39,9 +39,9 @@ export class AuditService {
     });
   }
 
-  /** Full chronological history for a single request. */
+  /** Full chronological history for a single request. Read → replica. */
   listForRequest(billingRequestId: string) {
-    return this.prisma.auditLog.findMany({
+    return this.prisma.reader.auditLog.findMany({
       where: { billingRequestId },
       orderBy: { createdAt: 'asc' },
       include: {
