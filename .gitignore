@@ -5,11 +5,19 @@ node_modules/
 dist/
 build/
 coverage/
+*.tsbuildinfo
 
 # Environment
+# Ignore the generic .env and any *.local files.
 .env
 .env.local
 *.local
+# Ignore real staging/production secret files; keep .env.development and
+# *.example tracked. (Frontend web/.env.* are public config and stay tracked.)
+/.env.staging
+/.env.production
+/api/.env.staging
+/api/.env.production
 
 # Logs
 *.log

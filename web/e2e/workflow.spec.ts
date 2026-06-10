@@ -57,10 +57,10 @@ test.describe('FlowDesk billing-approval workflow (UI E2E)', () => {
     await expectStatus(page, 'rejected');
     await logout(page);
 
-    // Sales sees the reason and reopens the request to a draft.
+    // Sales sees the reason (shown in the warning callout) and reopens to draft.
     await login(page, USERS.sales);
     await page.goto(requestUrl);
-    await expect(page.getByText(reason)).toBeVisible();
+    await expect(page.locator('.callout--warn')).toContainText(reason);
     await page.getByRole('button', { name: /Revise/ }).click();
     await expectStatus(page, 'draft');
   });

@@ -4,8 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "dev": "vite --mode development",
+    "build": "tsc --noEmit && vite build --mode production",
+    "build:staging": "tsc --noEmit && vite build --mode staging",
+    "build:production": "tsc --noEmit && vite build --mode production",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx",
     "test:e2e": "playwright test",

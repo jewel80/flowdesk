@@ -21,6 +21,13 @@ import { HealthModule } from './modules/health/health.module';
       isGlobal: true,
       load: [configuration],
       validationSchema: envValidationSchema,
+      // Load environment-specific overrides first, then a shared .env fallback.
+      // Variables already present in process.env (e.g. injected by Docker) always
+      // win, so this is safe in containers where no .env file is shipped.
+      envFilePath: [
+        `.env.${process.env.NODE_ENV ?? 'development'}`,
+        '.env',
+      ],
     }),
     PrismaModule,
     QueueModule,

@@ -1,0 +1,69 @@
+# Optional override that demonstrates REAL read/write splitting with PostgreSQL
+# streaming replication (one primary + one hot-standby replica), using the
+# official postgres image (no third-party image dependencies).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.replica.yml up --build
+#
+# The API writes to `postgres` (primary, via DATABASE_URL) and reads from
+# `postgres-replica` (via DATABASE_REPLICA_URLS). The base stack
+# (docker-compose.yml alone) keeps using a single Postgres, with reads falling
+# back to the primary — both paths are valid.
+
+services:
+  postgres:
+    # Enable WAL streaming and create a replication role on first init.
+    command:
+      - postgres
+      - "-c"
+      - "wal_level=replica"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "hot_standby=on"
+    environment:
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER:-repl_user}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD:-repl_password}
+    volumes:
+      - ./docker/primary:/docker-entrypoint-initdb.d:ro
+
+  postgres-replica:
+    image: postgres:16-alpine
+    entrypoint: ["bash", "/etc/flowdesk/replica-entrypoint.sh"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-flowdesk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-flowdesk}
+      POSTGRES_DB: ${POSTGRES_DB:-flowdesk}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER:-repl_user}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD:-repl_password}
+      POSTGRES_PRIMARY_HOST: postgres
+      POSTGRES_PRIMARY_PORT: "5432"
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+      - ./docker/replica/entrypoint.sh:/etc/flowdesk/replica-entrypoint.sh:ro
+    ports:
+      - "${POSTGRES_REPLICA_PORT:-5433}:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-flowdesk} -d ${POSTGRES_DB:-flowdesk}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  api:
+    environment:
+      # Reads are routed here; writes still go to the primary (DATABASE_URL).
+      DATABASE_REPLICA_URLS: postgresql://${POSTGRES_USER:-flowdesk}:${POSTGRES_PASSWORD:-flowdesk}@postgres-replica:5432/${POSTGRES_DB:-flowdesk}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-replica:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_replica_data:

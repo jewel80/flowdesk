@@ -21,22 +21,24 @@ trail**, so at any moment you can answer *who did what, when, and why*.
 ## Table of contents
 
 1. [Why this option](#why-this-option)
-2. [Quick start (Docker)](#quick-start-docker)
-3. [Demo accounts](#demo-accounts)
-4. [Key user flows](#key-user-flows)
-5. [Architecture](#architecture)
-6. [Read/write database splitting](#readwrite-database-splitting)
-7. [Tech stack & rationale](#tech-stack--rationale)
-8. [Data model](#data-model)
-9. [The workflow state machine](#the-workflow-state-machine)
-10. [API reference](#api-reference)
-11. [Project structure](#project-structure)
-12. [Local development (without Docker)](#local-development-without-docker)
-13. [Testing](#testing)
-14. [Security & access control](#security--access-control)
-15. [Assumptions](#assumptions)
-16. [What I'd improve with more time](#what-id-improve-with-more-time)
-17. [AI-assisted development note](#ai-assisted-development-note)
+2. [Requirements coverage (Option 1)](#requirements-coverage-option-1)
+3. [Quick start (Docker)](#quick-start-docker)
+4. [Demo accounts](#demo-accounts)
+5. [Key user flows](#key-user-flows)
+6. [Architecture](#architecture)
+7. [Read/write database splitting](#readwrite-database-splitting)
+8. [Tech stack & rationale](#tech-stack--rationale)
+9. [Data model](#data-model)
+10. [The workflow state machine](#the-workflow-state-machine)
+11. [API reference](#api-reference)
+12. [Project structure](#project-structure)
+13. [Environments & npm scripts](#environments--npm-scripts)
+14. [Troubleshooting](#troubleshooting)
+15. [Testing](#testing)
+16. [Security & access control](#security--access-control)
+17. [Assumptions](#assumptions)
+18. [What I'd improve with more time](#what-id-improve-with-more-time)
+19. [AI-assisted development note](#ai-assisted-development-note)
 
 ---
 
@@ -56,18 +58,61 @@ is the cleanest way to demonstrate the things that actually move those needles:
 
 ---
 
+## Requirements coverage (Option 1)
+
+Every **minimum expectation** from the brief, where it lives, and how it's
+verified:
+
+| Requirement | Status | Implementation | Verified by |
+| --- | --- | --- | --- |
+| At least 2–3 user roles | ✅ | `SALES`, `ACCOUNTS`, `MANAGER` (`schema.prisma` `Role`) | RBAC unit + e2e tests |
+| Clear workflow with statuses | ✅ | `DRAFT → SUBMITTED → APPROVED → INVOICED`, `SUBMITTED → REJECTED → DRAFT` (`billing-requests/workflow.ts`) | `workflow.spec.ts` |
+| Create / view / approve-reject / update | ✅ | `billing-requests.controller.ts` (+ submit/resubmit, invoice mark-paid) | e2e lifecycle test |
+| Basic dashboard / list views | ✅ | `web` Dashboard, Requests list (+ filters), Invoices list | Playwright e2e |
+| Audit trail / activity history | ✅ | Append-only `AuditLog`, written in-transaction (`audit.service.ts`) | e2e asserts full trail |
+| Sensible data model | ✅ | `User`, `BillingRequest`, `Invoice`, `AuditLog` (enums, FKs, money-as-cents) | [Data model](#data-model) |
+| Basic validation & error states | ✅ | `class-validator` DTOs, global `ValidationPipe`, consistent error envelope | e2e validation test |
+| Seed data for review | ✅ | `prisma/seed.ts` (4 users + requests across every status) | runs on container start |
+
+**Optional extras implemented:** Role-based access control, simulated
+notifications (worker logs), reporting/summary metrics, an accounting/invoice
+object model, and a rejection-reason "comment". **Beyond the brief:** async
+queue-based invoice generation, read/write DB splitting, JWT auth, and three test
+layers (unit + API e2e + browser e2e).
+
+**Deliberately out of scope** (noted under [improvements](#what-id-improve-with-more-time)):
+file attachments, a configurable approval-rules engine, exportable reports, and
+AI-assisted draft generation.
+
+---
+
 ## Quick start (Docker)
 
-The only prerequisite is Docker (with Compose v2). No paid services, no external
-credentials.
+### Prerequisites
+
+- **Docker Desktop** (or Docker Engine) with **Compose v2** — that's all.
+- Ports **8080** (web), **3000** (API), **5432** (Postgres) and **6379** (Redis)
+  free on the host. If one is taken, see [Troubleshooting](#troubleshooting).
+- No Node.js install, paid services, or external credentials are required to run
+  the app — everything runs in containers.
+
+### Run it (3 steps)
 
 ```bash
+# 1. Clone
 git clone <your-public-repo-url>
 cd flowdesk
+
+# 2. Start the whole stack (Postgres + Redis + API + Web)
 docker compose up --build
+
+# 3. Open the app
+#    Web:  http://localhost:8080
 ```
 
-Then open:
+That's it. On startup the API container automatically **applies database
+migrations** and **seeds demo data** (idempotent — safe to re-run). The first
+build takes a couple of minutes; subsequent runs are cached.
 
 | Surface | URL |
 | --- | --- |
@@ -75,12 +120,26 @@ Then open:
 | API base | http://localhost:3000/api/v1 |
 | API health | http://localhost:3000/api/v1/health |
 
-On startup the API container automatically **applies database migrations** and
-**seeds demo data** (idempotent — safe to re-run). The first build takes a couple
-of minutes; subsequent runs are cached.
+### Verify it's up
 
-To reset all data: `docker compose down -v` (removes the Postgres volume), then
-bring it back up.
+```bash
+curl http://localhost:3000/api/v1/health
+# {"status":"ok","database":"up", ...}
+```
+
+Then sign in at http://localhost:8080 with any [demo account](#demo-accounts)
+(e.g. `sales@flowdesk.dev` / `password123`).
+
+### Stop / reset
+
+```bash
+docker compose down        # stop and remove containers (keeps data)
+docker compose down -v     # also wipe the database volume (fresh seed next run)
+```
+
+> Prefer named scripts? The repo root has a [task runner](#environments--npm-scripts)
+> (`npm run up`, `npm run down`, `npm run dev`, …) so you don't have to remember
+> compose flags.
 
 ---
 
@@ -428,10 +487,14 @@ Every error has the same shape:
 
 ```
 flowdesk/
-├─ docker-compose.yml          # postgres + redis + api + web
+├─ package.json                # root task runner (up/dev/staging/prod/test…)
+├─ docker-compose.yml          # postgres + redis + api + web (base)
+├─ docker-compose.prod.yml     # production overlay (restart, logging, limits)
 ├─ docker-compose.replica.yml  # optional: real primary + streaming read replica
 ├─ docker/                     # postgres replication init/entrypoint scripts
-├─ .env.example                # optional overrides (defaults are baked in)
+├─ .env.development            # dev compose values (safe defaults)
+├─ .env.staging.example        # → copy to .env.staging (git-ignored)
+├─ .env.production.example      # → copy to .env.production (git-ignored)
 ├─ docs/
 │  ├─ ARCHITECTURE.md          # diagrams, data flow, design rationale
 │  └─ lead_full_stack_take_home_tests.md.pdf
@@ -473,19 +536,66 @@ DTOs.
 
 ---
 
-## Local development (without Docker)
+## Environments & npm scripts
+
+The project supports **development**, **staging** and **production** environments
+through environment files, with a root task runner so execution stays clean and
+consistent.
+
+### How configuration is layered
+
+- **Docker:** Compose substitutes variables from an env file passed with
+  `--env-file` (e.g. `.env.development`), falling back to safe inline defaults so
+  the plain `docker compose up --build` always works.
+- **API (NestJS):** loads `.env.${NODE_ENV}` then `.env` (via `ConfigModule`),
+  and validates the result with a Joi schema — the app refuses to boot on a
+  missing/invalid variable. Variables already in the environment (e.g. injected
+  by Docker) always take precedence.
+- **Web (Vite):** uses build modes (`--mode development|staging|production`) with
+  matching `web/.env.*` files (frontend vars are public, not secrets).
+
+### Env files
+
+| File | Tracked in git | Purpose |
+| --- | --- | --- |
+| `.env.development`, `api/.env.development`, `web/.env.*` | ✅ (safe defaults) | local development |
+| `.env.staging.example`, `api/.env.staging.example` | ✅ (template) | copy → `.env.staging` (git-ignored) |
+| `.env.production.example`, `api/.env.production.example` | ✅ (template) | copy → `.env.production` (git-ignored) |
+
+Real `.env.staging` / `.env.production` (with secrets) are **git-ignored**.
+
+### Root task runner (`package.json`)
+
+From the repo root — no global installs needed:
+
+| Command | What it does |
+| --- | --- |
+| `npm run up` | Build + run the stack (defaults) — same as `docker compose up --build` |
+| `npm run dev` | Run with **development** env (`--env-file .env.development`) |
+| `npm run staging` | Run with **staging** env + prod hardening overlay, detached |
+| `npm run prod` | Run with **production** env + prod hardening overlay, detached |
+| `npm run replica` | Run with a real streaming **read replica** |
+| `npm run down` / `down:clean` | Stop (and optionally wipe the DB volume) |
+| `npm run logs` / `ps` | Tail logs / list services |
+| `npm run install:all` | `npm install` in both `api` and `web` |
+| `npm run test:api` / `test:api:e2e` / `test:web:e2e` | Run each test layer |
+
+Production/staging additionally apply
+[`docker-compose.prod.yml`](docker-compose.prod.yml) (restart policies, log
+rotation, resource limits).
+
+### Local development (without Docker)
 
 Requires Node 22 and a local Postgres + Redis (or just run those two via
 `docker compose up postgres redis`).
 
 ```bash
-# Backend
+# Backend (loads api/.env.development automatically)
 cd api
-cp .env.example .env                # adjust DATABASE_URL / REDIS_HOST if needed
 npm install
-npx prisma migrate deploy           # or: npx prisma migrate dev
-npm run db:seed
-npm run start:dev                    # http://localhost:3000/api/v1
+node ./node_modules/prisma/build/index.js migrate deploy   # apply migrations
+npm run db:seed                                             # seed demo data
+npm run start:dev                                           # http://localhost:3000/api/v1
 
 # Frontend (separate terminal)
 cd web
@@ -494,7 +604,21 @@ npm run dev                          # http://localhost:5173 (proxies /api → :
 ```
 
 > Note: on paths containing spaces, the `npx` shim can misresolve on Windows;
-> invoke binaries via `node ./node_modules/<pkg>/...` if you hit that.
+> invoke binaries via `node ./node_modules/<pkg>/...` (as shown above) if you hit
+> that.
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause & fix |
+| --- | --- |
+| `docker compose up` fails: **port is already allocated** | Another service uses 8080/3000/5432/6379. Stop it, or override the port: `WEB_PORT=8090 API_PORT=3001 docker compose up --build` (or set them in an env file). |
+| **`password authentication failed for user "flowdesk"`** when running tests/tools against `localhost:5432` | A **local PostgreSQL** on your machine is shadowing the container's mapped port. Run against an isolated DB on a free port — see [Backend e2e](#backend-end-to-end-tests-jest--supertest). |
+| API container is **unhealthy** / can't reach the DB | Postgres/Redis may still be starting. Compose waits for healthchecks; give it ~30s. Check `docker compose logs api`. |
+| Data looks stale or seed didn't change | Seed only re-creates transactional data on boot. For a clean slate: `docker compose down -v && docker compose up --build`. |
+| `npx <tool>` errors on Windows in a path with spaces | Invoke the binary directly: `node ./node_modules/<pkg>/...`. |
+| Ran `git clean` and lost files | Untracked files (anything not committed) are removed by `git clean`. Commit your work; the repo must include `docker-compose*.yml` and `docker/` for the stack to run after a clone. |
 
 ---
 
