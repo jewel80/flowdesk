@@ -64,7 +64,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
           : ((res as Record<string, unknown>).message as string | string[]);
       return {
         status,
-        error: HttpStatus[status] ?? 'Error',
+        error: this.reasonPhrase(status),
         message: message ?? exception.message,
       };
     }
@@ -78,6 +78,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
       error: 'Internal Server Error',
       message: 'An unexpected error occurred',
     };
+  }
+
+  /** Converts an HTTP status into a human-readable reason phrase, e.g. 400 -> "Bad Request". */
+  private reasonPhrase(status: number): string {
+    const key = HttpStatus[status];
+    if (!key) {
+      return 'Error';
+    }
+    return key
+      .split('_')
+      .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(' ');
   }
 
   private mapPrismaError(exception: Prisma.PrismaClientKnownRequestError): {
