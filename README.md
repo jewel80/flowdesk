@@ -777,12 +777,12 @@ npm run test:e2e           # 4 tests
 
 ## AI-assisted development note
 
-This solution was built with AI assistance (Claude Code). I directed the
+This solution was built with the help of AI assistance (ChatGPT, Grok, Copilot, Claude ). I directed the
 architecture and design decisions, reviewed every file as I would my own PR, and
 **verified the result by actually running it**: the unit suite passes (19 tests),
 and the full stack was brought up with `docker compose up --build` and driven
 end-to-end through the complete lifecycle (the smoke test above). Two real issues
 surfaced during that verification — a Prisma engine target mismatch on Alpine and
 a TypeScript build-output path bug — and both were diagnosed and fixed before
-this was considered done. I own all of the code, architecture and documentation
+This was considered done. I own all of the code, architecture, and documentation
 here.
