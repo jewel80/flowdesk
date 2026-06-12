@@ -48,7 +48,7 @@ export class BillingRequestsService {
     private readonly repository: BillingRequestsRepository,
     private readonly auditService: AuditService,
     @InjectQueue(INVOICE_QUEUE) private readonly invoiceQueue: Queue,
-  ) {}
+  ) { }
 
   async create(dto: CreateBillingRequestDto, user: AuthenticatedUser) {
     const created = await this.repository.transaction(async (tx) => {

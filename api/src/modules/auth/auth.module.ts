@@ -22,4 +22,4 @@ import { AuthService } from './auth.service';
   // Exported so the global JwtAuthGuard can resolve JwtService.
   exports: [JwtModule],
 })
-export class AuthModule {}
+export class AuthModule { }

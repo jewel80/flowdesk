@@ -14,7 +14,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   /**
    * Validates credentials and issues a signed JWT. The same generic error is

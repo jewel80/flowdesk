@@ -11,7 +11,7 @@ import { AuthenticatedUser } from '../auth/auth.types';
 
 @Injectable()
 export class MetricsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * Dashboard summary. Sales users see metrics for their own requests only;

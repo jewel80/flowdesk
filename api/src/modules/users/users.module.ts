@@ -6,4 +6,4 @@ import { UsersService } from './users.service';
   providers: [UsersRepository, UsersService],
   exports: [UsersService],
 })
-export class UsersModule {}
+export class UsersModule { }

@@ -8,7 +8,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
  */
 @Injectable()
 export class UsersRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   // All user lookups are reads → routed to a replica (falls back to primary).
   findByEmail(email: string): Promise<User | null> {

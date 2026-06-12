@@ -46,4 +46,4 @@ import { HealthModule } from './modules/health/health.module';
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
-export class AppModule {}
+export class AppModule { }

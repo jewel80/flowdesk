@@ -27,7 +27,7 @@ import { QueryBillingRequestsDto } from './dto/query-billing-requests.dto';
  */
 @Controller('billing-requests')
 export class BillingRequestsController {
-  constructor(private readonly service: BillingRequestsService) {}
+  constructor(private readonly service: BillingRequestsService) { }
 
   @Post()
   @Roles(Role.SALES)

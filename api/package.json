@@ -1,7 +1,7 @@
 {
   "name": "flowdesk-api",
   "version": "1.0.0",
-  "description": "FlowDesk - ERP billing-approval workflow API (NestJS)",
+  "description": "FlowDesk – A production-ready ERP workflow platform that streamlines billing request approvals across Sales, Accounts, and Management. Features role-based access control, workflow state management, automated invoice generation, audit trails, dashboards, and Dockerized deployment, built with NestJS, React, PostgreSQL, Redis, and TypeScript.",
   "license": "MIT",
   "scripts": {
     "build": "nest build",

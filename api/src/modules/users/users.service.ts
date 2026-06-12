@@ -11,7 +11,7 @@ export interface PublicUser {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(private readonly usersRepository: UsersRepository) { }
 
   findByEmail(email: string): Promise<User | null> {
     return this.usersRepository.findByEmail(email);

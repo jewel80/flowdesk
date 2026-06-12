@@ -27,7 +27,7 @@ export class InvoicesService {
     private readonly repository: InvoicesRepository,
     private readonly auditService: AuditService,
     private readonly config: ConfigService,
-  ) {}
+  ) { }
 
   /**
    * Generates the invoice for an APPROVED request and moves it to INVOICED.

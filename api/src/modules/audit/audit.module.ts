@@ -6,4 +6,4 @@ import { AuditService } from './audit.service';
   // Exported so the billing-requests and invoices workflows can record events.
   exports: [AuditService],
 })
-export class AuditModule {}
+export class AuditModule { }

@@ -12,4 +12,4 @@ import { BillingRequestsService } from './billing-requests.service';
   providers: [BillingRequestsService, BillingRequestsRepository],
   exports: [BillingRequestsService],
 })
-export class BillingRequestsModule {}
+export class BillingRequestsModule { }

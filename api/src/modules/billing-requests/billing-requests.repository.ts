@@ -14,7 +14,7 @@ type Client = PrismaClient | Prisma.TransactionClient;
 
 @Injectable()
 export class BillingRequestsRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /** Run a unit of work atomically (status change + audit entry together). */
   transaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {

@@ -20,7 +20,7 @@ type Client = PrismaClient | Prisma.TransactionClient;
 
 @Injectable()
 export class InvoicesRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   // Read: defaults to a replica, but callers inside a write transaction (e.g. the
   // idempotency check in invoice generation) pass the tx client to hit the primary.

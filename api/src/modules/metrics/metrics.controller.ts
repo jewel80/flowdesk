@@ -5,7 +5,7 @@ import { MetricsService } from './metrics.service';
 
 @Controller('metrics')
 export class MetricsController {
-  constructor(private readonly service: MetricsService) {}
+  constructor(private readonly service: MetricsService) { }
 
   @Get('summary')
   summary(@CurrentUser() user: AuthenticatedUser) {

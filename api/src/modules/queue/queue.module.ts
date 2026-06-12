@@ -30,4 +30,4 @@ import { INVOICE_QUEUE } from './queue.constants';
   ],
   exports: [BullModule],
 })
-export class QueueModule {}
+export class QueueModule { }

@@ -5,7 +5,7 @@ import { Public } from '../auth/decorators/public.decorator';
 /** Liveness/readiness endpoint used by Docker healthchecks and reviewers. */
 @Controller('health')
 export class HealthController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   @Public()
   @Get()
