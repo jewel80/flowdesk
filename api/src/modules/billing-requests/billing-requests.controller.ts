@@ -11,6 +11,18 @@ import {
   Query,
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiConflictResponse,
+  ApiBadRequestResponse
+} from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthenticatedUser } from '../auth/auth.types';
@@ -25,12 +37,42 @@ import { QueryBillingRequestsDto } from './dto/query-billing-requests.dto';
  * No business logic lives here. Authorization is declared via @Roles; the
  * service additionally enforces ownership and workflow rules.
  */
+@ApiTags('billing-requests')
+@ApiBearerAuth('JWT-auth')
 @Controller('billing-requests')
 export class BillingRequestsController {
   constructor(private readonly service: BillingRequestsService) { }
 
   @Post()
   @Roles(Role.SALES)
+  @ApiOperation({
+    summary: 'Create a new billing request',
+    description: 'Creates a new draft billing request. Only users with SALES role can create requests.'
+  })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Billing request created successfully',
+    schema: {
+      example: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        number: 'BR-2026-0001',
+        status: 'DRAFT',
+        title: 'Consulting services',
+        customerName: 'Acme Corporation',
+        amountCents: 150000,
+        currency: 'USD',
+        description: 'Monthly consulting services',
+        createdAt: '2026-06-19T10:00:00.000Z',
+        createdBy: {
+          userId: '550e8400-e29b-41d4-a716-446655440000',
+          name: 'Sales User',
+          email: 'sales@flowdesk.dev'
+        }
+      }
+    }
+  })
+  @ApiBadRequestResponse({ description: 'Invalid input data' })
+  @ApiForbiddenResponse({ description: 'User does not have SALES role' })
   create(
     @Body() dto: CreateBillingRequestDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -39,6 +81,38 @@ export class BillingRequestsController {
   }
 
   @Get()
+  @ApiOperation({
+    summary: 'List billing requests',
+    description: 'Returns a paginated list of billing requests. Sales users only see their own requests. Accounts and Manager roles see all requests.'
+  })
+  @ApiQuery({ name: 'status', required: false, description: 'Filter by status', enum: ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'INVOICED'] })
+  @ApiQuery({ name: 'mine', required: false, description: 'Filter to own requests (Sales auto-scoped)', type: Boolean })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number', type: Number, example: 1 })
+  @ApiQuery({ name: 'pageSize', required: false, description: 'Items per page', type: Number, example: 20 })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Billing requests retrieved successfully',
+    schema: {
+      example: {
+        data: [
+          {
+            id: '550e8400-e29b-41d4-a716-446655440000',
+            number: 'BR-2026-0001',
+            status: 'SUBMITTED',
+            title: 'Consulting services',
+            customerName: 'Acme Corporation',
+            amountCents: 150000,
+            currency: 'USD',
+            createdAt: '2026-06-19T10:00:00.000Z',
+            createdBy: { name: 'Sales User', email: 'sales@flowdesk.dev' }
+          }
+        ],
+        total: 1,
+        page: 1,
+        pageSize: 20
+      }
+    }
+  })
   findAll(
     @Query() query: QueryBillingRequestsDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -47,6 +121,37 @@ export class BillingRequestsController {
   }
 
   @Get(':id')
+  @ApiOperation({
+    summary: 'Get a billing request by ID',
+    description: 'Returns detailed information about a specific billing request. Sales users can only view their own requests.'
+  })
+  @ApiParam({ name: 'id', description: 'Billing request UUID', example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Billing request retrieved successfully',
+    schema: {
+      example: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        number: 'BR-2026-0001',
+        status: 'SUBMITTED',
+        title: 'Consulting services',
+        customerName: 'Acme Corporation',
+        amountCents: 150000,
+        currency: 'USD',
+        description: 'Monthly consulting services',
+        rejectionReason: null,
+        createdAt: '2026-06-19T10:00:00.000Z',
+        createdBy: {
+          userId: '550e8400-e29b-41d4-a716-446655440000',
+          name: 'Sales User',
+          email: 'sales@flowdesk.dev'
+        },
+        reviewedBy: null
+      }
+    }
+  })
+  @ApiNotFoundResponse({ description: 'Billing request not found' })
+  @ApiForbiddenResponse({ description: 'User does not have permission to view this request' })
   findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -55,6 +160,41 @@ export class BillingRequestsController {
   }
 
   @Get(':id/audit')
+  @ApiOperation({
+    summary: 'Get audit trail for a billing request',
+    description: 'Returns the complete audit trail for a billing request, showing all state changes and actions.'
+  })
+  @ApiParam({ name: 'id', description: 'Billing request UUID', example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Audit trail retrieved successfully',
+    schema: {
+      example: {
+        data: [
+          {
+            id: 'audit-id-1',
+            action: 'CREATED',
+            fromStatus: null,
+            toStatus: 'DRAFT',
+            note: 'Request created',
+            actor: { name: 'Sales User', email: 'sales@flowdesk.dev' },
+            createdAt: '2026-06-19T10:00:00.000Z'
+          },
+          {
+            id: 'audit-id-2',
+            action: 'SUBMITTED',
+            fromStatus: 'DRAFT',
+            toStatus: 'SUBMITTED',
+            note: 'Request submitted for approval',
+            actor: { name: 'Sales User', email: 'sales@flowdesk.dev' },
+            createdAt: '2026-06-19T11:00:00.000Z'
+          }
+        ]
+      }
+    }
+  })
+  @ApiNotFoundResponse({ description: 'Billing request not found' })
+  @ApiForbiddenResponse({ description: 'User does not have permission to view this request' })
   auditTrail(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -64,6 +204,19 @@ export class BillingRequestsController {
 
   @Patch(':id')
   @Roles(Role.SALES)
+  @ApiOperation({
+    summary: 'Update a billing request',
+    description: 'Updates an existing draft billing request. Only DRAFT requests owned by the creator can be updated.'
+  })
+  @ApiParam({ name: 'id', description: 'Billing request UUID', example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Billing request updated successfully'
+  })
+  @ApiBadRequestResponse({ description: 'Invalid input data' })
+  @ApiForbiddenResponse({ description: 'User does not have permission to update this request' })
+  @ApiNotFoundResponse({ description: 'Billing request not found' })
+  @ApiConflictResponse({ description: 'Cannot update request in current status' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateBillingRequestDto,
@@ -75,6 +228,18 @@ export class BillingRequestsController {
   @Post(':id/submit')
   @Roles(Role.SALES)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Submit a billing request for approval',
+    description: 'Transitions a DRAFT billing request to SUBMITTED status. Only the request owner can submit.'
+  })
+  @ApiParam({ name: 'id', description: 'Billing request UUID', example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Request submitted successfully'
+  })
+  @ApiForbiddenResponse({ description: 'User does not have permission to submit this request' })
+  @ApiNotFoundResponse({ description: 'Billing request not found' })
+  @ApiConflictResponse({ description: 'Cannot submit request in current status' })
   submit(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -85,6 +250,30 @@ export class BillingRequestsController {
   @Post(':id/approve')
   @Roles(Role.ACCOUNTS)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Approve a billing request',
+    description: 'Approves a SUBMITTED billing request and generates an invoice asynchronously. Only ACCOUNTS role can approve.'
+  })
+  @ApiParam({ name: 'id', description: 'Billing request UUID', example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Request approved successfully and invoice generation initiated',
+    schema: {
+      example: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        number: 'BR-2026-0001',
+        status: 'APPROVED',
+        title: 'Consulting services',
+        customerName: 'Acme Corporation',
+        amountCents: 150000,
+        currency: 'USD',
+        reviewedBy: { name: 'Accounts User', email: 'accounts@flowdesk.dev' }
+      }
+    }
+  })
+  @ApiForbiddenResponse({ description: 'User does not have ACCOUNTS role' })
+  @ApiNotFoundResponse({ description: 'Billing request not found' })
+  @ApiConflictResponse({ description: 'Cannot approve request in current status' })
   approve(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -95,6 +284,32 @@ export class BillingRequestsController {
   @Post(':id/reject')
   @Roles(Role.ACCOUNTS)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reject a billing request',
+    description: 'Rejects a SUBMITTED billing request with a mandatory reason. Only ACCOUNTS role can reject.'
+  })
+  @ApiParam({ name: 'id', description: 'Billing request UUID', example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Request rejected successfully',
+    schema: {
+      example: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        number: 'BR-2026-0001',
+        status: 'REJECTED',
+        title: 'Consulting services',
+        customerName: 'Acme Corporation',
+        amountCents: 150000,
+        currency: 'USD',
+        rejectionReason: 'Incomplete customer information',
+        reviewedBy: { name: 'Accounts User', email: 'accounts@flowdesk.dev' }
+      }
+    }
+  })
+  @ApiBadRequestResponse({ description: 'Rejection reason is required' })
+  @ApiForbiddenResponse({ description: 'User does not have ACCOUNTS role' })
+  @ApiNotFoundResponse({ description: 'Billing request not found' })
+  @ApiConflictResponse({ description: 'Cannot reject request in current status' })
   reject(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: RejectBillingRequestDto,
@@ -106,6 +321,18 @@ export class BillingRequestsController {
   @Post(':id/resubmit')
   @Roles(Role.SALES)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Resubmit a rejected billing request',
+    description: 'Transitions a REJECTED billing request back to DRAFT status so it can be edited and resubmitted. Only the request owner can resubmit.'
+  })
+  @ApiParam({ name: 'id', description: 'Billing request UUID', example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Request resubmitted successfully'
+  })
+  @ApiForbiddenResponse({ description: 'User does not have permission to resubmit this request' })
+  @ApiNotFoundResponse({ description: 'Billing request not found' })
+  @ApiConflictResponse({ description: 'Cannot resubmit request in current status' })
   resubmit(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
