@@ -219,6 +219,14 @@ async function createRequest(input: SeedRequestInput): Promise<void> {
   if (input.invoice) {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 30);
+
+    // Calculate totals for the new schema
+    const subtotalCents = input.amountCents;
+    const discountCents = 0;
+    const taxRatePercent = 0;
+    const taxAmountCents = 0;
+    const totalCents = subtotalCents - discountCents + taxAmountCents;
+
     await prisma.invoice.create({
       data: {
         amountCents: input.amountCents,
@@ -227,6 +235,34 @@ async function createRequest(input: SeedRequestInput): Promise<void> {
         dueDate,
         paidAt: input.invoice.status === InvoiceStatus.PAID ? new Date() : null,
         billingRequestId: request.id,
+        // New required fields
+        billToName: input.customerName,
+        billToAddress: 'Customer Address',
+        billToEmail: null,
+        billToPhone: null,
+        issuerName: 'FlowDesk Inc.',
+        issuerAddress: '123 Business St, Suite 100, San Francisco, CA 94105',
+        issuerTaxId: null,
+        issuerEmail: 'billing@flowdesk.com',
+        issuerPhone: '+1-555-123-4567',
+        subtotalCents,
+        discountCents,
+        taxRatePercent,
+        taxAmountCents,
+        totalCents,
+        paymentTerms: 'Net 30',
+        notes: 'Thank you for your business.',
+        lineItems: {
+          create: [
+            {
+              description: input.title || (input.description ? input.description.substring(0, 100) : 'Services'),
+              quantity: 1,
+              unitPriceCents: input.amountCents,
+              amountCents: input.amountCents,
+              sortOrder: 0,
+            },
+          ],
+        },
       },
     });
   }

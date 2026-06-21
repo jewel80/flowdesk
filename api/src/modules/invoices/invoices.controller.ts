@@ -6,6 +6,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import {
@@ -22,6 +23,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { InvoicesService } from './invoices.service';
+import { QueryInvoicesDto } from './dto/query-invoices.dto';
 
 @ApiTags('invoices')
 @ApiBearerAuth('JWT-auth')
@@ -60,8 +62,8 @@ export class InvoicesController {
       }
     }
   })
-  findAll(@CurrentUser() user: AuthenticatedUser) {
-    return this.service.findAll(user);
+  findAll(@CurrentUser() user: AuthenticatedUser, @Query() query: QueryInvoicesDto) {
+    return this.service.findAll(user, query);
   }
 
   @Get(':id')
