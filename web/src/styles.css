@@ -766,6 +766,70 @@ a {
   font-size: 13px;
 }
 
+.status-trend-chart__subtitle {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+
+/* ---------- Chart tooltip ---------- */
+.chart-tooltip {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+  min-width: 160px;
+  font-size: 12px;
+}
+
+.chart-tooltip__date {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 7px;
+  font-size: 12px;
+}
+
+.chart-tooltip__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.chart-tooltip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chart-tooltip__name {
+  flex: 1;
+  color: #374151;
+}
+
+.chart-tooltip__value {
+  font-weight: 600;
+  color: #111827;
+  min-width: 16px;
+  text-align: right;
+}
+
+.chart-tooltip__total {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #f3f4f6;
+  font-weight: 600;
+  color: #374151;
+  text-align: right;
+}
+
+.chart-tooltip__empty {
+  color: var(--muted);
+  font-style: italic;
+}
+
 /* ---------- Chat History ---------- */
 .chat-history {
   display: flex;

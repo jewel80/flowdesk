@@ -38,14 +38,14 @@ export class MetricsRepository {
 
     const results = await this.prisma.reader.$queryRaw<Array<{ date: string; toStatus: string; count: bigint }>>`
       SELECT
-        DATE_TRUNC('day', "createdAt")::date as date,
+        TO_CHAR(DATE_TRUNC('day', "createdAt"), 'YYYY-MM-DD') as date,
         "toStatus",
         COUNT(*) as count
       FROM "audit_logs"
       WHERE "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
         AND "toStatus" IN ('SUBMITTED', 'APPROVED', 'REJECTED', 'INVOICED')
         ${isSalesUser && userId ? Prisma.sql`AND "billingRequestId" IN (SELECT "id" FROM "billing_requests" WHERE "createdById" = ${userId})` : Prisma.empty}
-      GROUP BY DATE_TRUNC('day', "createdAt")::date, "toStatus"
+      GROUP BY TO_CHAR(DATE_TRUNC('day', "createdAt"), 'YYYY-MM-DD'), "toStatus"
       ORDER BY date, "toStatus"
     `;
 
