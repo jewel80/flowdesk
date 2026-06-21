@@ -105,15 +105,61 @@ model Invoice {
   dueDate       DateTime
   paidAt        DateTime?
 
+  // Issuer snapshot - captured at invoice generation time
+  // This ensures the invoice remains a legal document even if company details change
+  issuerName      String?
+  issuerAddress   String?
+  issuerTaxId     String?     // BIN / VAT reg. number
+  issuerEmail     String?
+  issuerPhone     String?
+
+  // Bill-to snapshot - captured at invoice generation time
+  // NOT a live FK-only reference; ensures invoice correctness over time
+  billToName      String
+  billToAddress   String
+  billToEmail     String?
+  billToPhone     String?
+
+  // Money breakdown - all integer cents for precision
+  subtotalCents     Int
+  discountCents     Int      @default(0)
+  taxRatePercent    Decimal  @default(0)
+  taxAmountCents    Int      @default(0)
+  totalCents        Int      // subtotal - discount + tax
+
+  // Payment and bank details
+  paymentTerms      String?  // e.g. "Net 30"
+  notes             String?  // terms & conditions / thank-you note
+  bankAccountName   String?
+  bankAccountNumber String?
+  bankName          String?
+  bankSwiftOrRouting String?
+
   billingRequestId String         @unique
   billingRequest   BillingRequest @relation(fields: [billingRequestId], references: [id])
   chatMessages     ChatMessage[]    @relation
+  lineItems        InvoiceLineItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status])
   @@map("invoices")
+}
+
+/// Line items for detailed invoice breakdown
+model InvoiceLineItem {
+  id            String   @id @default(uuid())
+  invoiceId     String
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description   String
+  quantity      Int
+  unitPriceCents Int
+  amountCents   Int      // quantity * unitPriceCents
+  sortOrder     Int      @default(0)
+
+  @@index([invoiceId])
+  @@map("invoice_line_items")
 }
 
 /// PI Chat messages for Manager role to discuss invoices

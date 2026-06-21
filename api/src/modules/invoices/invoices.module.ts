@@ -6,11 +6,12 @@ import { InvoiceProcessor } from './invoice.processor';
 import { InvoicesController } from './invoices.controller';
 import { InvoicesRepository } from './invoices.repository';
 import { InvoicesService } from './invoices.service';
+import { PdfService } from './pdf.service';
 
 @Module({
   imports: [AuditModule, BullModule.registerQueue({ name: INVOICE_QUEUE })],
   controllers: [InvoicesController],
-  providers: [InvoicesService, InvoicesRepository, InvoiceProcessor],
+  providers: [InvoicesService, InvoicesRepository, InvoiceProcessor, PdfService],
   exports: [InvoicesService],
 })
 export class InvoicesModule { }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   BillingRequestStatus,
   InvoiceStatus,
@@ -8,10 +8,21 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { toMajorUnits } from '../../common/utils/money';
 import { AuthenticatedUser } from '../auth/auth.types';
+import { MetricsRepository } from './metrics.repository';
+import {
+  DayStatusData,
+  DailyBreakdownResponse,
+  MonthlyTrendResponse,
+} from './dto/metrics-query.dto';
 
 @Injectable()
 export class MetricsService {
-  constructor(private readonly prisma: PrismaService) { }
+  private readonly logger = new Logger(MetricsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly repository: MetricsRepository,
+  ) {}
 
   /**
    * Dashboard summary. Sales users see metrics for their own requests only;
@@ -69,5 +80,108 @@ export class MetricsService {
         paidAmount: toMajorUnits(paidAgg._sum.amountCents ?? 0),
       },
     };
+  }
+
+  /**
+   * Get monthly status trend - day-wise counts per status
+   */
+  async getDailyStatusTrend(
+    month: string,
+    user: AuthenticatedUser,
+  ): Promise<MonthlyTrendResponse> {
+    const [year, monthNum] = month.split('-').map(Number);
+    const isSalesUser = user.role === Role.SALES;
+
+    this.logger.log(
+      `Fetching daily status trend for ${month} for user ${user.userId} (${user.role})`,
+    );
+
+    const results = await this.repository.getStatusCountsByDayMonth(
+      year,
+      monthNum,
+      user.userId,
+      isSalesUser,
+    );
+
+    // Transform results into the expected format
+    const daysMap = new Map<string, DayStatusData>();
+
+    // Initialize all days of the month with zero counts
+    const daysInMonth = this.repository.getDaysInMonth(year, monthNum);
+    for (const day of daysInMonth) {
+      const dateStr = day.toISOString().split('T')[0];
+      daysMap.set(dateStr, {
+        date: dateStr,
+        SUBMITTED: 0,
+        APPROVED: 0,
+        REJECTED: 0,
+        INVOICED: 0,
+      });
+    }
+
+    // Fill in actual counts
+    for (const row of results) {
+      const dateStr = row.date.toString().split('T')[0]; // Handle Date to string conversion
+      const existing = daysMap.get(dateStr);
+      if (existing) {
+        const count = Number(row.count);
+        const status = row.toStatus;
+        const updated = { ...existing };
+        if (status === 'SUBMITTED') updated.SUBMITTED = count;
+        else if (status === 'APPROVED') updated.APPROVED = count;
+        else if (status === 'REJECTED') updated.REJECTED = count;
+        else if (status === 'INVOICED') updated.INVOICED = count;
+        daysMap.set(dateStr, updated);
+      }
+    }
+
+    return {
+      month,
+      days: Array.from(daysMap.values()).sort((a, b) =>
+        a.date.localeCompare(b.date),
+      ),
+    };
+  }
+
+  /**
+   * Get status breakdown for a specific date
+   */
+  async getDailyStatusBreakdown(
+    date: string,
+    user: AuthenticatedUser,
+  ): Promise<DailyBreakdownResponse> {
+    const dateObj = new Date(date);
+    const isSalesUser = user.role === Role.SALES;
+
+    this.logger.log(
+      `Fetching daily status breakdown for ${date} for user ${user.userId} (${user.role})`,
+    );
+
+    const results = await this.repository.getStatusCountsForDate(
+      dateObj,
+      user.userId,
+      isSalesUser,
+    );
+
+    // Initialize with zero counts
+    const breakdown: DailyBreakdownResponse = {
+      date,
+      SUBMITTED: 0,
+      APPROVED: 0,
+      REJECTED: 0,
+      INVOICED: 0,
+    };
+
+    // Fill in actual counts
+    for (const row of results) {
+      const status = row.toStatus;
+      const count = Number(row.count);
+      if (status === 'SUBMITTED') breakdown.SUBMITTED = count;
+      else if (status === 'APPROVED') breakdown.APPROVED = count;
+      else if (status === 'REJECTED') breakdown.REJECTED = count;
+      else if (status === 'INVOICED') breakdown.INVOICED = count;
+    }
+
+    return breakdown;
   }
 }

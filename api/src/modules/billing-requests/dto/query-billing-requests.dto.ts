@@ -1,6 +1,6 @@
 import { BillingRequestStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
 
 export class QueryBillingRequestsDto {
@@ -21,6 +21,14 @@ export class QueryBillingRequestsDto {
   @IsOptional()
   @Type(() => Boolean)
   mine?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Search across request number (BR-YYYY-NNNN), title, and customer name. Case-insensitive partial match.',
+    example: 'consulting'
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
 
   @ApiPropertyOptional({
     description: 'Page number for pagination',
