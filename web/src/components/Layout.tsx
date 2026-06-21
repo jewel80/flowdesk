@@ -4,6 +4,7 @@ import { humanise } from '../lib/format';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', end: true },
+  { to: '/dashboard/pi', label: 'PI Dashboard', end: false },
   { to: '/requests', label: 'Billing Requests', end: false },
   { to: '/invoices', label: 'Invoices', end: false },
 ];

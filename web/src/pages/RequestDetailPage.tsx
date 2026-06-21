@@ -124,7 +124,12 @@ export function RequestDetailPage() {
         </div>
 
         <div className="card">
-          <h2 className="card__title">Activity history</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 className="card__title" style={{ marginBottom: 0 }}>Activity history</h2>
+            <Link className="link link--sm" to={`/requests/${data.id}/history`}>
+              View chat history →
+            </Link>
+          </div>
           {audit.isLoading && <LoadingState label="Loading history…" />}
           {audit.data && (
             <ol className="timeline">

@@ -76,6 +76,30 @@ export interface AuditEntry {
   createdAt: string;
 }
 
+export interface HistoryEntry {
+  id: string;
+  action: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  note: string | null;
+  timestamp: string;
+  timeLabel: string;
+  actor: UserRef | null;
+  metadata: Record<string, unknown> | null;
+  statusChange?: {
+    from: string | null;
+    to: string | null;
+  };
+}
+
+export interface HistoryDayGroup {
+  date: string; // 'today', 'yesterday', or ISO date
+  dateLabel: string; // 'Today', 'Yesterday', 'June 15, 2026'
+  entries: HistoryEntry[];
+}
+
+export type HistoryResponse = HistoryDayGroup[];
+
 export interface Invoice {
   id: string;
   invoiceNumber: string;
@@ -92,6 +116,25 @@ export interface Invoice {
   };
 }
 
+export interface PIChatMessage {
+  id: string;
+  message: string;
+  senderName: string;
+  role: Role;
+  createdAt: string;
+}
+
+export interface PIChatDayGroup {
+  date: string;
+  dateLabel: string;
+  messages: PIChatMessage[];
+}
+
+export interface PIChatResponse {
+  piId: string;
+  chat: PIChatDayGroup[];
+}
+
 export interface MetricsSummary {
   scope: 'self' | 'organisation';
   requests: {
@@ -105,6 +148,39 @@ export interface MetricsSummary {
     paidCount: number;
     paidAmount: number;
   };
+}
+
+export interface PIStatusSummary {
+  SUBMITTED: number;
+  APPROVED: number;
+  REJECTED: number;
+  INVOICED: number;
+}
+
+export interface TimelineEntry {
+  id: string;
+  action: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  note: string | null;
+  timestamp: string;
+  timeLabel: string;
+  actor: UserRef | null;
+  metadata: Record<string, unknown> | null;
+  billingRequest: {
+    id: string;
+    number: number;
+    title: string;
+    status: BillingRequestStatus;
+  };
+}
+
+export type DailyTimelineResponse = TimelineDayGroup[];
+
+export interface TimelineDayGroup {
+  date: string; // 'today', 'yesterday', or ISO date
+  dateLabel: string; // 'Today', 'Yesterday', 'June 15, 2026'
+  entries: TimelineEntry[];
 }
 
 export interface CreateBillingRequestInput {

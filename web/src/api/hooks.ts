@@ -8,10 +8,14 @@ import type {
   AuditEntry,
   BillingRequest,
   CreateBillingRequestInput,
+  DailyTimelineResponse,
   DemoUser,
+  HistoryResponse,
   Invoice,
   MetricsSummary,
   Paginated,
+  PIChatResponse,
+  PIStatusSummary,
   WorkflowAction,
 } from './types';
 
@@ -25,8 +29,12 @@ export const queryKeys = {
   requests: (filter: RequestFilter) => ['requests', filter] as const,
   request: (id: string) => ['request', id] as const,
   audit: (id: string) => ['audit', id] as const,
+  history: (id: string) => ['history', id] as const,
+  piChat: (id: string) => ['pi-chat', id] as const,
   invoices: ['invoices'] as const,
   invoice: (id: string) => ['invoice', id] as const,
+  dashboard: ['dashboard'] as const,
+  dashboardTimeline: (days: number) => ['dashboard-timeline', days] as const,
 };
 
 export function useDemoUsers() {
@@ -76,6 +84,15 @@ export function useAuditTrail(id: string) {
   });
 }
 
+export function useHistory(id: string) {
+  return useQuery({
+    queryKey: queryKeys.history(id),
+    queryFn: async () =>
+      (await api.get<HistoryResponse>(`/billing-requests/${id}/history`)).data,
+    enabled: Boolean(id),
+  });
+}
+
 export function useInvoices() {
   return useQuery({
     queryKey: queryKeys.invoices,
@@ -88,6 +105,26 @@ export function useInvoice(id: string) {
     queryKey: queryKeys.invoice(id),
     queryFn: async () => (await api.get<Invoice>(`/invoices/${id}`)).data,
     enabled: Boolean(id),
+  });
+}
+
+export function usePIChat(invoiceId: string) {
+  return useQuery({
+    queryKey: queryKeys.piChat(invoiceId),
+    queryFn: async () =>
+      (await api.get<PIChatResponse>(`/invoices/${invoiceId}/pi-chat`)).data,
+    enabled: Boolean(invoiceId),
+  });
+}
+
+export function useSendPIChatMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ invoiceId, message }: { invoiceId: string; message: string }) =>
+      (await api.post<PIChatResponse>(`/invoices/${invoiceId}/pi-chat`, { message })).data,
+    onSuccess: (_data, variables) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.piChat(variables.invoiceId) });
+    },
   });
 }
 
@@ -141,6 +178,24 @@ export function useMarkInvoicePaid() {
       void qc.invalidateQueries({ queryKey: queryKeys.invoice(id) });
       void qc.invalidateQueries({ queryKey: queryKeys.metrics });
     },
+  });
+}
+
+export function usePIStatusSummary() {
+  return useQuery({
+    queryKey: queryKeys.dashboard,
+    queryFn: async () =>
+      (await api.get<PIStatusSummary>('/dashboard/status-summary')).data,
+  });
+}
+
+export function useDashboardTimeline(days: number = 30) {
+  return useQuery({
+    queryKey: queryKeys.dashboardTimeline(days),
+    queryFn: async () =>
+      (await api.get<DailyTimelineResponse>('/dashboard/daily-timeline', {
+        params: { days },
+      })).data,
   });
 }
 
