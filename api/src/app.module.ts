@@ -14,6 +14,8 @@ import { AuditModule } from './modules/audit/audit.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { HealthModule } from './modules/health/health.module';
+import { PIChatModule } from './modules/pi-chat/pi-chat.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { HealthModule } from './modules/health/health.module';
     AuditModule,
     MetricsModule,
     HealthModule,
+    PIChatModule,
+    DashboardModule,
   ],
   providers: [
     // Authentication is on by default for every route; opt out with @Public().

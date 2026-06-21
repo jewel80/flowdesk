@@ -202,6 +202,109 @@ export class BillingRequestsController {
     return this.service.getAuditTrail(id, user);
   }
 
+  @Get(':id/history')
+  @ApiOperation({
+    summary: 'Get day-wise history for a billing request',
+    description: 'Returns audit trail entries grouped by day with enhanced formatting for chat-like display. Groups are labeled as "Today", "Yesterday", or specific dates (e.g., "June 15, 2026").'
+  })
+  @ApiParam({ name: 'id', description: 'Billing request UUID', example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Day-wise history retrieved successfully',
+    schema: {
+      example: {
+        data: [
+          {
+            date: 'today',
+            dateLabel: 'Today',
+            entries: [
+              {
+                id: 'audit-id-3',
+                action: 'APPROVED',
+                fromStatus: 'SUBMITTED',
+                toStatus: 'APPROVED',
+                note: null,
+                timestamp: '2026-06-21T14:30:00.000Z',
+                timeLabel: '2:30 PM',
+                actor: {
+                  id: 'user-id-1',
+                  name: 'Accounts User',
+                  role: 'ACCOUNTS',
+                  email: null
+                },
+                metadata: null,
+                statusChange: {
+                  from: 'SUBMITTED',
+                  to: 'APPROVED'
+                }
+              }
+            ]
+          },
+          {
+            date: 'yesterday',
+            dateLabel: 'Yesterday',
+            entries: [
+              {
+                id: 'audit-id-2',
+                action: 'SUBMITTED',
+                fromStatus: 'DRAFT',
+                toStatus: 'SUBMITTED',
+                note: 'Request submitted for approval',
+                timestamp: '2026-06-20T10:15:00.000Z',
+                timeLabel: '10:15 AM',
+                actor: {
+                  id: 'user-id-2',
+                  name: 'Sales User',
+                  role: 'SALES',
+                  email: null
+                },
+                metadata: null,
+                statusChange: {
+                  from: 'DRAFT',
+                  to: 'SUBMITTED'
+                }
+              }
+            ]
+          },
+          {
+            date: '2026-06-15',
+            dateLabel: 'June 15, 2026',
+            entries: [
+              {
+                id: 'audit-id-1',
+                action: 'CREATED',
+                fromStatus: null,
+                toStatus: 'DRAFT',
+                note: 'Request created',
+                timestamp: '2026-06-15T09:00:00.000Z',
+                timeLabel: '9:00 AM',
+                actor: {
+                  id: 'user-id-2',
+                  name: 'Sales User',
+                  role: 'SALES',
+                  email: null
+                },
+                metadata: null,
+                statusChange: {
+                  from: null,
+                  to: 'DRAFT'
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  })
+  @ApiNotFoundResponse({ description: 'Billing request not found' })
+  @ApiForbiddenResponse({ description: 'User does not have permission to view this request' })
+  getHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.getHistory(id, user);
+  }
+
   @Patch(':id')
   @Roles(Role.SALES)
   @ApiOperation({

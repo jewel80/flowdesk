@@ -3,10 +3,12 @@ import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { DashboardPage } from './pages/DashboardPage';
 import { EditRequestPage } from './pages/EditRequestPage';
+import { HistoryPage } from './pages/HistoryPage';
 import { InvoiceDetailPage } from './pages/InvoiceDetailPage';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { LoginPage } from './pages/LoginPage';
 import { NewRequestPage } from './pages/NewRequestPage';
+import { PIDashboardPage } from './pages/PIDashboardPage';
 import { RequestDetailPage } from './pages/RequestDetailPage';
 import { RequestsPage } from './pages/RequestsPage';
 
@@ -22,10 +24,12 @@ export default function App() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="dashboard/pi" element={<PIDashboardPage />} />
         <Route path="requests" element={<RequestsPage />} />
         <Route path="requests/new" element={<NewRequestPage />} />
         <Route path="requests/:id" element={<RequestDetailPage />} />
         <Route path="requests/:id/edit" element={<EditRequestPage />} />
+        <Route path="requests/:id/history" element={<HistoryPage />} />
         <Route path="invoices" element={<InvoicesPage />} />
         <Route path="invoices/:id" element={<InvoiceDetailPage />} />
       </Route>

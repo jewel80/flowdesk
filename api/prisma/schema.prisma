@@ -58,6 +58,7 @@ model User {
   createdRequests  BillingRequest[] @relation("RequestCreatedBy")
   reviewedRequests BillingRequest[] @relation("RequestReviewedBy")
   auditEntries     AuditLog[]
+  sentMessages     ChatMessage[]    @relation("ChatSentBy")
 
   @@map("users")
 }
@@ -106,12 +107,29 @@ model Invoice {
 
   billingRequestId String         @unique
   billingRequest   BillingRequest @relation(fields: [billingRequestId], references: [id])
+  chatMessages     ChatMessage[]    @relation
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status])
   @@map("invoices")
+}
+
+/// PI Chat messages for Manager role to discuss invoices
+model ChatMessage {
+  id             String   @id @default(uuid())
+  message        String
+  invoiceId      String
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  sentById       String
+  sentBy         User     @relation("ChatSentBy", fields: [sentById], references: [id])
+  createdAt      DateTime @default(now())
+
+  @@index([invoiceId])
+  @@index([sentById])
+  @@index([createdAt])
+  @@map("chat_messages")
 }
 
 /// Append-only audit trail. One row per meaningful domain action.

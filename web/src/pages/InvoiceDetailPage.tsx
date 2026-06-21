@@ -5,6 +5,7 @@ import { extractErrorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { ErrorState, LoadingState } from '../components/States';
 import { StatusBadge } from '../components/StatusBadge';
+import { PIChat } from '../components/PIChat';
 import { formatDate, formatMoney } from '../lib/format';
 
 export function InvoiceDetailPage() {
@@ -21,6 +22,7 @@ export function InvoiceDetailPage() {
 
   const data = invoice.data;
   const canMarkPaid = user?.role === 'ACCOUNTS' && data.status === 'ISSUED';
+  const canViewPIChat = user?.role === 'MANAGER';
 
   const handleMarkPaid = async () => {
     setError(null);
@@ -47,49 +49,58 @@ export function InvoiceDetailPage() {
         <StatusBadge status={data.status} />
       </header>
 
-      <div className="card invoice">
-        <div className="invoice__amount">
-          {formatMoney(data.amount, data.currency)}
-        </div>
-        <dl className="kv">
-          <div className="kv__row">
-            <dt>Customer</dt>
-            <dd>{data.billingRequest.customerName}</dd>
+      <div className="detail-grid">
+        <div className="card invoice">
+          <div className="invoice__amount">
+            {formatMoney(data.amount, data.currency)}
           </div>
-          <div className="kv__row">
-            <dt>Issued</dt>
-            <dd>{formatDate(data.issuedAt)}</dd>
-          </div>
-          <div className="kv__row">
-            <dt>Due date</dt>
-            <dd>{formatDate(data.dueDate)}</dd>
-          </div>
-          <div className="kv__row">
-            <dt>Paid at</dt>
-            <dd>{formatDate(data.paidAt)}</dd>
-          </div>
-          <div className="kv__row">
-            <dt>Source request</dt>
-            <dd>
-              <Link className="link" to={`/requests/${data.billingRequest.id}`}>
-                View request →
-              </Link>
-            </dd>
-          </div>
-        </dl>
+          <dl className="kv">
+            <div className="kv__row">
+              <dt>Customer</dt>
+              <dd>{data.billingRequest.customerName}</dd>
+            </div>
+            <div className="kv__row">
+              <dt>Issued</dt>
+              <dd>{formatDate(data.issuedAt)}</dd>
+            </div>
+            <div className="kv__row">
+              <dt>Due date</dt>
+              <dd>{formatDate(data.dueDate)}</dd>
+            </div>
+            <div className="kv__row">
+              <dt>Paid at</dt>
+              <dd>{formatDate(data.paidAt)}</dd>
+            </div>
+            <div className="kv__row">
+              <dt>Source request</dt>
+              <dd>
+                <Link className="link" to={`/requests/${data.billingRequest.id}`}>
+                  View request →
+                </Link>
+              </dd>
+            </div>
+          </dl>
 
-        {canMarkPaid && (
-          <div className="actions">
-            <button
-              className="btn btn--success"
-              onClick={handleMarkPaid}
-              disabled={markPaid.isPending}
-            >
-              {markPaid.isPending ? 'Updating…' : 'Mark as paid'}
-            </button>
+          {canMarkPaid && (
+            <div className="actions">
+              <button
+                className="btn btn--success"
+                onClick={handleMarkPaid}
+                disabled={markPaid.isPending}
+              >
+                {markPaid.isPending ? 'Updating…' : 'Mark as paid'}
+              </button>
+            </div>
+          )}
+          {error && <div className="form__error">{error}</div>}
+        </div>
+
+        {canViewPIChat && (
+          <div className="card pi-chat-card">
+            <h2 className="card__title">PI Chat</h2>
+            <PIChat invoiceId={id} />
           </div>
         )}
-        {error && <div className="form__error">{error}</div>}
       </div>
     </section>
   );

@@ -236,6 +236,128 @@ export class BillingRequestsService {
     return this.auditService.listForRequest(id);
   }
 
+  /**
+   * Day-wise grouped history for a request, gated by view permission.
+   * Returns audit entries grouped by day with enhanced formatting for chat-like display.
+   */
+  async getHistory(id: string, user: AuthenticatedUser) {
+    const request = await this.getOrThrow(id);
+    this.assertCanView(request.createdById, user);
+    const entries = await this.auditService.listForRequest(id);
+    return this.groupByDay(entries);
+  }
+
+  /**
+   * Groups audit entries by day and transforms them for the history API response.
+   * Entries are grouped as "Today", "Yesterday", or specific dates.
+   */
+  private groupByDay(entries: Awaited<ReturnType<typeof this.auditService.listForRequest>>) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Group entries by date key
+    const grouped = new Map<string, typeof entries>();
+
+    entries.forEach((entry) => {
+      const entryDate = new Date(entry.createdAt);
+      entryDate.setHours(0, 0, 0, 0);
+      const dateKey = this.getDateKey(entryDate, today, yesterday);
+
+      if (!grouped.has(dateKey.key)) {
+        grouped.set(dateKey.key, []);
+      }
+      grouped.get(dateKey.key)!.push(entry);
+    });
+
+    // Transform to response format with proper ordering
+    return Array.from(grouped.entries())
+      .map(([key, entries]) => ({
+        date: key,
+        dateLabel: this.formatDateLabel(key, today, yesterday),
+        entries: entries.map((e) => this.toHistoryEntry(e)),
+      }))
+      .sort((a, b) => {
+        // Sort by date descending (most recent first)
+        if (a.date === 'today') return -1;
+        if (b.date === 'today') return 1;
+        if (a.date === 'yesterday') return -1;
+        if (b.date === 'yesterday') return 1;
+        return b.date.localeCompare(a.date);
+      });
+  }
+
+  /**
+   * Determines the date key and label for an entry date.
+   * Returns 'today', 'yesterday', or the ISO date string.
+   */
+  private getDateKey(entryDate: Date, today: Date, yesterday: Date): { key: string; label: string } {
+    if (entryDate.getTime() === today.getTime()) {
+      return { key: 'today', label: 'Today' };
+    }
+    if (entryDate.getTime() === yesterday.getTime()) {
+      return { key: 'yesterday', label: 'Yesterday' };
+    }
+    const dateStr = entryDate.toISOString().split('T')[0];
+    return { key: dateStr, label: this.formatSpecificDate(entryDate) };
+  }
+
+  /**
+   * Formats a date label for specific dates (not today/yesterday).
+   * Example: "June 15, 2026"
+   */
+  private formatSpecificDate(date: Date): string {
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
+
+  /**
+   * Formats the date label based on the date key.
+   */
+  private formatDateLabel(key: string, today: Date, yesterday: Date): string {
+    if (key === 'today') return 'Today';
+    if (key === 'yesterday') return 'Yesterday';
+    const date = new Date(key);
+    return this.formatSpecificDate(date);
+  }
+
+  /**
+   * Transforms an audit log entry into a history entry format.
+   */
+  private toHistoryEntry(entry: Awaited<ReturnType<typeof this.auditService.listForRequest>>[0]) {
+    const entryDate = new Date(entry.createdAt);
+    return {
+      id: entry.id,
+      action: entry.action,
+      fromStatus: entry.fromStatus,
+      toStatus: entry.toStatus,
+      note: entry.note,
+      timestamp: entry.createdAt,
+      timeLabel: entryDate.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      }),
+      actor: entry.actor
+        ? {
+            id: entry.actor.id,
+            name: entry.actor.name,
+            role: entry.actor.role,
+            email: null, // Email not included in audit select
+          }
+        : null,
+      metadata: entry.metadata,
+      statusChange: {
+        from: entry.fromStatus,
+        to: entry.toStatus,
+      },
+    };
+  }
+
   private async getOrThrow(id: string) {
     const request = await this.repository.findById(id);
     if (!request) {
