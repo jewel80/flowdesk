@@ -5,7 +5,6 @@ import { api, extractErrorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { ErrorState, LoadingState } from '../components/States';
 import { StatusBadge } from '../components/StatusBadge';
-import { PIChat } from '../components/PIChat';
 import { formatDate, formatMoney } from '../lib/format';
 
 export function InvoiceDetailPage() {
@@ -24,7 +23,6 @@ export function InvoiceDetailPage() {
 
   const data = invoice.data;
   const canMarkPaid = user?.role === 'ACCOUNTS' && data.status === 'ISSUED';
-  const canViewPIChat = user?.role === 'MANAGER';
 
   const handleMarkPaid = async () => {
     setActionError(null);
@@ -98,7 +96,7 @@ export function InvoiceDetailPage() {
         <div className="form__error">{pdfError ?? actionError}</div>
       )}
 
-      <div className={canViewPIChat ? 'detail-grid' : undefined}>
+      <div>
         {/* ── Invoice document ── */}
         <div className="card invoice-doc">
 
@@ -260,13 +258,6 @@ export function InvoiceDetailPage() {
           )}
         </div>
 
-        {/* ── PI Chat (Manager only) ── */}
-        {canViewPIChat && (
-          <div className="card pi-chat-card">
-            <h2 className="card__title">PI Chat</h2>
-            <PIChat invoiceId={id} />
-          </div>
-        )}
       </div>
     </section>
   );

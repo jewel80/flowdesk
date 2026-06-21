@@ -1,6 +1,5 @@
 import { PIStatusChart } from '../components/PIStatusChart';
 import { StatusTrendChart } from '../components/StatusTrendChart';
-import { StatusPieChart } from '../components/StatusPieChart';
 
 export function PIDashboardPage() {
   return (
@@ -14,9 +13,8 @@ export function PIDashboardPage() {
         <PIStatusChart />
       </div>
 
-      <div className="dashboard__charts">
+      <div className="dashboard__trend">
         <StatusTrendChart />
-        <StatusPieChart />
       </div>
     </section>
   );

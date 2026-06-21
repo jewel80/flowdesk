@@ -1142,15 +1142,13 @@ a {
 
 .pi-status-chart {
   background: white;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 1.5rem;
   box-shadow: var(--shadow);
 }
 
-.pi-status-chart h2 {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  color: var(--text);
+.pi-status-chart__header {
+  margin-bottom: 16px;
 }
 
 .pi-status-chart--empty {
@@ -1158,6 +1156,87 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Donut + stats side-by-side */
+.pi-status-chart__body {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.pi-status-chart__donut {
+  position: relative;
+  flex: 0 0 200px;
+}
+
+.pi-status-chart__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.pi-status-chart__total {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.pi-status-chart__total-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pi-status-chart__stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pi-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.pi-stat__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pi-stat__name {
+  flex: 1;
+  color: var(--text);
+}
+
+.pi-stat__count {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 28px;
+  text-align: right;
+}
+
+.pi-stat__pct {
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 34px;
+  text-align: right;
+}
+
+/* ---------- Dashboard trend (full-width row) ---------- */
+.dashboard__trend {
+  margin-top: 16px;
 }
 
 .dashboard__timeline {
@@ -1340,4 +1419,198 @@ a {
   color: var(--text);
   min-width: 52px;
   text-align: center;
+}
+
+/* ---------- Trend badge (StatusTrendChart) ---------- */
+.trend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.trend-badge--up {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.trend-badge--down {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-trend-chart__peak {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+
+/* ---------- Invoice summary cards ---------- */
+.invoice-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.invoice-stat-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow);
+}
+
+.invoice-stat-card__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+}
+
+.invoice-stat-card__value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.invoice-stat-card__sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- Invoices table enhancements ---------- */
+.filters--invoices {
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.filters__status-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.invoices-table-card {
+  overflow-x: auto;
+}
+
+.invoices-table {
+  min-width: 700px;
+}
+
+/* Sortable column headers */
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable-th:hover {
+  color: var(--primary);
+}
+
+.sort-icon {
+  margin-left: 4px;
+  font-size: 11px;
+}
+
+.sort-icon--idle {
+  color: #d1d5db;
+}
+
+.sort-icon--active {
+  color: var(--primary);
+}
+
+.invoice-link {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.invoice-customer {
+  color: var(--text);
+}
+
+.invoice-amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Overdue row highlight */
+.table__row--overdue {
+  background: #fff7ed;
+}
+
+.table__row--overdue:hover {
+  background: #ffedd5;
+}
+
+.overdue-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  vertical-align: middle;
+}
+
+.overdue-date {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+/* Per-row action buttons */
+.invoice-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.inv-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.inv-btn--view {
+  background: #eff6ff;
+  color: var(--primary);
+}
+
+.inv-btn--view:hover {
+  background: #dbeafe;
+}
+
+.inv-btn--pdf {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.inv-btn--pdf:hover {
+  background: #e5e7eb;
 }
