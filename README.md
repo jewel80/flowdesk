@@ -100,10 +100,10 @@ All accounts use the password **`password123`**. The login screen lists them wit
 <table>
 <tr>
 <td align="center" width="50%">
-<strong>Sign in</strong><br/>
+<strong>Sign In</strong><br/>
 Role-aware demo account selector
 <br/><br/>
-<img src="docs/screenshots/01-login.png" alt="Sign in" width="100%"/>
+<img src="docs/screenshots/01-login.png" alt="Sign In" width="100%"/>
 </td>
 <td align="center" width="50%">
 <strong>Overview Dashboard — Manager view</strong><br/>
@@ -120,18 +120,18 @@ Scoped to own requests · New Request CTA
 <img src="docs/screenshots/07-overview-sales-view.png" alt="Overview Sales View" width="100%"/>
 </td>
 <td align="center" width="50%">
-<strong>New Billing Request</strong><br/>
-Draft creation form for Sales users
+<strong>Billing Requests List</strong><br/>
+Paginated · searchable · filterable by status
 <br/><br/>
-<img src="docs/screenshots/08-new-request-form.png" alt="New Request Form" width="100%"/>
+<img src="docs/screenshots/03-billing-requests.png" alt="Billing Requests List" width="100%"/>
 </td>
 </tr>
 <tr>
 <td align="center" width="50%">
-<strong>Billing Requests List</strong><br/>
-Paginated · searchable · filterable by status
+<strong>New Billing Request</strong><br/>
+Draft creation form for Sales users
 <br/><br/>
-<img src="docs/screenshots/03-billing-requests.png" alt="Billing Requests" width="100%"/>
+<img src="docs/screenshots/04-new-request.png" alt="New Billing Request" width="100%"/>
 </td>
 <td align="center" width="50%">
 <strong>Request Detail & Audit Trail</strong><br/>
@@ -142,16 +142,68 @@ Workflow actions · full immutable audit timeline
 </tr>
 <tr>
 <td align="center" width="50%">
+<strong>Request Detail — Approval Action</strong><br/>
+Accounts reviewer approves a submitted request
+<br/><br/>
+<img src="docs/screenshots/06-approval.png" alt="Approval Action" width="100%"/>
+</td>
+<td align="center" width="50%">
+<strong>Request Detail — Post-approval</strong><br/>
+Request flipped to INVOICED after async worker runs
+<br/><br/>
+<img src="docs/screenshots/05-request-detail.png" alt="Request Detail Post-approval" width="100%"/>
+</td>
+</tr>
+<tr>
+<td align="center" width="50%">
 <strong>Invoices List</strong><br/>
-Sortable columns · status filter chips · overdue highlights · PDF download
+Sortable columns · status filter chips · overdue highlights
 <br/><br/>
 <img src="docs/screenshots/05-invoices.png" alt="Invoices List" width="100%"/>
 </td>
 <td align="center" width="50%">
+<strong>Invoices List — Filtered view</strong><br/>
+Status chip filter applied · paginated results
+<br/><br/>
+<img src="docs/screenshots/05-invoices-02.png" alt="Invoices Filtered" width="100%"/>
+</td>
+</tr>
+<tr>
+<td align="center" width="50%">
+<strong>Invoice PDF Download</strong><br/>
+Inline PDF preview triggered from the invoices list
+<br/><br/>
+<img src="docs/screenshots/05-invoices-pdf.png" alt="Invoice PDF Download" width="100%"/>
+</td>
+<td align="center" width="50%">
 <strong>Invoice Detail</strong><br/>
-Legal document layout · issuer · bill-to · line items · totals · PDF export
+Legal document layout · issuer · bill-to · line items · totals
 <br/><br/>
 <img src="docs/screenshots/06-invoice-detail.png" alt="Invoice Detail" width="100%"/>
+</td>
+</tr>
+<tr>
+<td align="center" width="50%">
+<strong>Invoice Detail — Payment section</strong><br/>
+Bank details · payment terms · PDF export button
+<br/><br/>
+<img src="docs/screenshots/06-invoice-detail-01.png" alt="Invoice Detail Payment" width="100%"/>
+</td>
+<td align="center" width="50%">
+<strong>Invoice Detail — Full document</strong><br/>
+Complete A4 invoice with mark-paid action
+<br/><br/>
+<img src="docs/screenshots/08-invoice-detail.png" alt="Invoice Detail Full" width="100%"/>
+</td>
+</tr>
+<tr>
+<td align="center" width="50%">
+<strong>New Request Form</strong><br/>
+Title · customer · amount · currency fields
+<br/><br/>
+<img src="docs/screenshots/08-new-request-form.png" alt="New Request Form" width="100%"/>
+</td>
+<td align="center" width="50%">
 </td>
 </tr>
 </table>
