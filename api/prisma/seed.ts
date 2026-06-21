@@ -301,7 +301,8 @@ function getRandomUser(users: any, roleHint?: string): any {
   if (roleHint === 'sales') {
     return salesUsers[Math.floor(Math.random() * salesUsers.length)];
   }
-  return users[Object.values(users)[Math.floor(Math.random() * Object.values(users).length)]];
+  const keys = Object.keys(users) as string[];
+  return users[keys[Math.floor(Math.random() * keys.length)]];
 }
 
 function generateRequestTitle(month: number): string {
