@@ -1,4 +1,4 @@
-import { PIStatusChart } from '../components/PIStatusChart';
+import { DashboardKPICards } from '../components/DashboardKPICards';
 import { StatusTrendChart } from '../components/StatusTrendChart';
 
 export function PIDashboardPage() {
@@ -9,9 +9,7 @@ export function PIDashboardPage() {
         <p>Organization-wide billing request performance</p>
       </header>
 
-      <div className="dashboard__overview">
-        <PIStatusChart />
-      </div>
+      <DashboardKPICards />
 
       <div className="dashboard__trend">
         <StatusTrendChart />
