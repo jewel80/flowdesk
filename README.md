@@ -107,7 +107,7 @@ Role-aware demo account selector
 </td>
 <td align="center" width="50%">
 <strong>Overview Dashboard — Manager view</strong><br/>
-KPI cards · financial summary · status breakdown · monthly trend
+Financial summary · status breakdown · daily status trend
 <br/><br/>
 <img src="docs/screenshots/02-overview-dashboard.png" alt="Overview Dashboard" width="100%"/>
 </td>
@@ -175,10 +175,9 @@ Legal document layout · issuer · bill-to · line items · totals · PDF export
 - **Mark as paid** — Accounts users can mark an `ISSUED` invoice as `PAID`.
 
 ### Unified Overview Dashboard
-- **4 gradient KPI cards** — Total PI, Pending PI, Approved PI, Rejected PI — with month-over-month trend indicators (↑/↓) comparing current vs previous month's audit events.
 - **Financial summary** — outstanding invoice total (with unpaid count) and collected total (with paid count), pulled from the metrics API.
 - **Requests by Status** — clickable quick-link grid showing live counts per status; each chip navigates to the pre-filtered requests list.
-- **Monthly Status Trend** — stacked column chart spanning the last 6 months, showing Submitted / Approved / Rejected / Invoiced events per month with a custom tooltip.
+- **Monthly Status Trend** — full-width interactive Canvas 2D chart showing daily Submitted / Approved / Rejected / Invoiced event counts for a selected month, with stacked/grouped toggle, hover tooltip, Pipeline Pulse ribbon, and month navigation up to 6 months back.
 - **Scope-aware** — Sales users see metrics scoped to their own requests; Manager and Accounts see org-wide data.
 
 ### Invoices Page
@@ -211,7 +210,7 @@ Legal document layout · issuer · bill-to · line items · totals · PDF export
 3. **Auto-invoicing (System)** — a BullMQ worker picks up the job, generates the invoice with line items and a 30-day due date, flips the request to `INVOICED`, and logs the audit entry — all without blocking Aaron's approval response.
 4. **Reject & revise (Sales / Accounts)** — Aaron rejects with a mandatory reason; Sara sees the callout, opens the request back to `DRAFT`, fixes it, and resubmits.
 5. **Mark paid & download PDF (Accounts)** — Aaron opens the generated invoice, marks it paid, and downloads the PDF for the customer record.
-6. **Monitor (Manager)** — Maria opens the Overview dashboard, sees the org-wide KPI cards with trend indicators, the financial summary, and the six-month status trend chart — all scoped to the full organisation.
+6. **Monitor (Manager)** — Maria opens the Overview dashboard, sees the financial summary, the org-wide status breakdown, and the monthly status trend chart — all scoped to the full organisation.
 
 ---
 
@@ -220,7 +219,7 @@ Legal document layout · issuer · bill-to · line items · totals · PDF export
 ```
                        ┌──────────────────────────────────────────────┐
                        │               Browser (React SPA)             │
-                       │   TanStack Query · React Router · Recharts    │
+                       │   TanStack Query · React Router · Canvas 2D   │
                        └───────────────────────┬──────────────────────┘
                                                │  HTTP  (same-origin /api/v1)
                        ┌───────────────────────▼──────────────────────┐
@@ -297,7 +296,7 @@ docker compose -f docker-compose.yml -f docker-compose.replica.yml up --build
 | Database | **PostgreSQL** | Relational integrity for FK constraints, enums, and audit table; transactions keep state + audit consistent; streaming replication for read/write split. |
 | Queue | **BullMQ + Redis** | Invoice generation off the request path with retries and idempotency — a real reason to use a queue. |
 | Frontend | **React + Vite + TypeScript** | Lightweight SPA; **TanStack Query** gives server-state management with loading/error/empty handling out of the box. |
-| Charts | **Recharts** | React-native composable charts; stacked `BarChart` + `PieChart` driven by TanStack Query data. |
+| Charts | **Canvas 2D** | Custom Canvas renderer for the Monthly Status Trend chart — imperative drawing with smooth animations, DPR handling, and ResizeObserver. No chart library dependency. |
 | PDF export | **pdfkit** | Pure Node.js; streams an A4 PDF directly to the HTTP response — no temp files, no headless browser. |
 | Auth | **JWT** | Sufficient to demonstrate authn/authz cleanly without over-investing in the auth layer. |
 | Deployment | **Docker Compose** | One command brings up the full stack, self-contained. |
@@ -385,20 +384,7 @@ Invalid transitions → **409 Conflict**. Wrong role / non-owner → **403 Forbi
 
 The unified Overview page (`/`) merges what were previously two separate dashboard pages into a single command centre, visible to all roles (scoped appropriately).
 
-### Section 1 — PI Status KPI Cards
-
-Four gradient cards showing the current distribution of billing requests across workflow statuses, with **month-over-month trend indicators**.
-
-| Card | Data source | Color |
-|---|---|---|
-| Total PI | Sum of all statuses (PIStatusSummary) | Indigo |
-| Pending PI | SUBMITTED count | Amber |
-| Approved PI | APPROVED count | Green |
-| Rejected PI | REJECTED count | Red |
-
-Trend is computed by comparing current month's audit event totals vs the previous month's totals (via `useMonthlyStatusTrends(2)`). Shows ↑/↓ % only when the direction is meaningful (> 3% change).
-
-### Section 2 — Financial Summary + Status Breakdown (2-column)
+### Section 1 — Financial Summary + Status Breakdown (2-column)
 
 **Left — Financial Summary:**
 - **Outstanding** — total value of all `ISSUED` invoices with unpaid count
@@ -407,9 +393,9 @@ Trend is computed by comparing current month's audit event totals vs the previou
 **Right — Requests by Status:**
 - Clickable status chips (DRAFT / SUBMITTED / APPROVED / REJECTED / INVOICED) with live counts, each linking to the pre-filtered Billing Requests list.
 
-### Section 3 — Monthly Status Trend (full-width)
+### Section 2 — Monthly Status Trend (full-width)
 
-Stacked column (bar) chart covering the **last 6 months**, aggregated from day-level audit event data fetched in parallel via `useMonthlyStatusTrends(6)`. Each column shows the monthly composition of Submitted / Approved / Rejected / Invoiced events with a custom tooltip.
+Interactive Canvas 2D chart showing **daily event counts** within a selected month. Stacked/grouped column toggle, hover tooltip, Pipeline Pulse ribbon (proportional status bar at top of card), and month navigation up to 6 months back. Powered by `GET /metrics/daily-status-trend?month=YYYY-MM` with a smooth intro animation and `prefers-reduced-motion` support.
 
 ---
 
@@ -482,18 +468,14 @@ The `Pagination` component renders Prev / Next controls with "Showing X–Y of Z
 
 ## Analytics & Reporting
 
-### Monthly Status Trend (bar chart)
+### Monthly Status Trend (interactive chart)
 
-- **What:** per-month counts of workflow transitions (Submitted, Approved, Rejected, Invoiced) across the last 6 months.
+- **What:** per-day counts of workflow transitions (Submitted, Approved, Rejected, Invoiced) within a selected month, rendered via Canvas 2D with stacked and grouped column modes.
 - **Data:** `AuditLog.toStatus` events aggregated via `TO_CHAR(DATE_TRUNC('day', createdAt), 'YYYY-MM-DD')` — fixes PostgreSQL's `date` OID deserialization to ensure correct string-key bucketing.
-- **Why events, not current counts:** a chart of "how many approvals happened per month" measures throughput over time. A snapshot of current status counts only tells you where things stand today.
+- **Why events, not current counts:** counting transitions per day measures throughput over time. A snapshot of current status counts only tells you where things stand right now.
 - **Endpoint:** `GET /metrics/daily-status-trend?month=YYYY-MM`
-- **Frontend:** `useMonthlyStatusTrends(6)` fires 6 parallel TanStack Query requests (one per month), aggregates day-level data into monthly totals client-side.
+- **Frontend:** `useDailyStatusTrend(month)` — single TanStack Query request; month navigation updates the query key and triggers a smooth Canvas intro animation.
 - **RBAC:** Sales sees only their own requests; Manager/Accounts see org-wide.
-
-### KPI Trend Indicators
-
-The Overview dashboard computes month-over-month change by fetching 2 months of trend data and comparing totals for each status category. Displayed as ↑/↓ % badges on each KPI card.
 
 ---
 
@@ -626,8 +608,7 @@ flowdesk/
         ├── api/                  # axios client + typed TanStack Query hooks
         ├── auth/                 # auth context + login flow
         ├── components/
-        │   ├── DashboardKPICards.tsx   # 4 gradient KPI cards with MoM trend
-        │   ├── StatusTrendChart.tsx    # 6-month stacked bar chart
+        │   ├── StatusTrendChart.tsx    # daily status trend chart (Canvas 2D)
         │   ├── SearchBar.tsx           # debounced search input
         │   ├── Pagination.tsx          # prev/next with URL sync
         │   └── ...                     # Layout, StatusBadge, States, etc.
