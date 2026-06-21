@@ -8,7 +8,6 @@ import { InvoiceDetailPage } from './pages/InvoiceDetailPage';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { LoginPage } from './pages/LoginPage';
 import { NewRequestPage } from './pages/NewRequestPage';
-import { PIDashboardPage } from './pages/PIDashboardPage';
 import { RequestDetailPage } from './pages/RequestDetailPage';
 import { RequestsPage } from './pages/RequestsPage';
 
@@ -24,7 +23,6 @@ export default function App() {
         }
       >
         <Route index element={<DashboardPage />} />
-        <Route path="dashboard/pi" element={<PIDashboardPage />} />
         <Route path="requests" element={<RequestsPage />} />
         <Route path="requests/new" element={<NewRequestPage />} />
         <Route path="requests/:id" element={<RequestDetailPage />} />
