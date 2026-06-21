@@ -44,9 +44,9 @@ async function shot(page, filename, waitFor) {
 
   // 2. Overview dashboard (manager sees org-wide data)
   await login(page, USERS.manager);
-  await page.waitForSelector('.kpi-card', { timeout: 10000 });
+  await page.waitForSelector('.trend-card', { timeout: 10000 });
   await page.waitForTimeout(1200); // charts need time
-  await shot(page, '02-overview-dashboard.png', '.status-trend-chart');
+  await shot(page, '02-overview-dashboard.png', '.trend-card');
 
   // 3. Billing Requests list
   await page.goto(`${BASE_URL}/requests`);
@@ -75,9 +75,9 @@ async function shot(page, filename, waitFor) {
   // 7. Overview as Sales user (shows "New request" button)
   await page.getByRole('button', { name: 'Sign out' }).click();
   await login(page, USERS.sales);
-  await page.waitForSelector('.kpi-card', { timeout: 10000 });
+  await page.waitForSelector('.trend-card', { timeout: 10000 });
   await page.waitForTimeout(1000);
-  await shot(page, '07-overview-sales-view.png', '.kpi-grid');
+  await shot(page, '07-overview-sales-view.png', '.trend-card');
 
   // 8. New request form
   await page.goto(`${BASE_URL}/requests/new`);

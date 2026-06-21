@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useMetrics } from '../api/hooks';
-import { DashboardKPICards } from '../components/DashboardKPICards';
 import { StatusTrendChart } from '../components/StatusTrendChart';
 import { StatusBadge } from '../components/StatusBadge';
 import { ErrorState } from '../components/States';
@@ -38,9 +37,6 @@ export function DashboardPage() {
           </Link>
         )}
       </header>
-
-      {/* PI workflow KPI cards */}
-      <DashboardKPICards />
 
       {/* Financial summary + Status breakdown */}
       {metrics.isError ? (
