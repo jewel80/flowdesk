@@ -89,6 +89,15 @@ export class BillingRequestsService {
       where.createdById = user.userId;
     }
 
+    // Add search condition if provided
+    if (query.search) {
+      const searchTerm = query.search;
+      where.OR = [
+        { title: { contains: searchTerm, mode: 'insensitive' } },
+        { customerName: { contains: searchTerm, mode: 'insensitive' } },
+      ];
+    }
+
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
     const { items, total } = await this.repository.findManyWithCount(

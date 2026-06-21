@@ -6,8 +6,11 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
+  Res,
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
+import { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -16,18 +19,23 @@ import {
   ApiParam,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
-  ApiConflictResponse
+  ApiConflictResponse,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { InvoicesService } from './invoices.service';
+import { PdfService } from './pdf.service';
+import { QueryInvoicesDto } from './dto/query-invoices.dto';
 
 @ApiTags('invoices')
 @ApiBearerAuth('JWT-auth')
 @Controller('invoices')
 export class InvoicesController {
-  constructor(private readonly service: InvoicesService) { }
+  constructor(
+    private readonly service: InvoicesService,
+    private readonly pdfService: PdfService,
+  ) { }
 
   @Get()
   @ApiOperation({
@@ -60,8 +68,8 @@ export class InvoicesController {
       }
     }
   })
-  findAll(@CurrentUser() user: AuthenticatedUser) {
-    return this.service.findAll(user);
+  findAll(@CurrentUser() user: AuthenticatedUser, @Query() query: QueryInvoicesDto) {
+    return this.service.findAll(user, query);
   }
 
   @Get(':id')
@@ -99,6 +107,26 @@ export class InvoicesController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.service.findOne(id, user);
+  }
+
+  @Get(':id/pdf')
+  @ApiOperation({
+    summary: 'Download invoice as PDF',
+    description: 'Streams a professional PDF for the invoice. Same role/ownership rules as GET /invoices/:id.',
+  })
+  @ApiParam({ name: 'id', description: 'Invoice UUID' })
+  @ApiResponse({ status: 200, description: 'PDF file stream', content: { 'application/pdf': {} } })
+  @ApiNotFoundResponse({ description: 'Invoice not found' })
+  @ApiForbiddenResponse({ description: 'User does not have permission to view this invoice' })
+  async downloadPdf(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() res: Response,
+  ) {
+    const invoice = await this.service.findOne(id, user);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${invoice.invoiceNumber}.pdf"`);
+    this.pdfService.generate(invoice, res);
   }
 
   @Post(':id/mark-paid')

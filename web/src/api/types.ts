@@ -100,6 +100,15 @@ export interface HistoryDayGroup {
 
 export type HistoryResponse = HistoryDayGroup[];
 
+export interface InvoiceLineItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  sortOrder: number;
+}
+
 export interface Invoice {
   id: string;
   invoiceNumber: string;
@@ -109,6 +118,31 @@ export interface Invoice {
   issuedAt: string;
   dueDate: string;
   paidAt: string | null;
+  // Issuer snapshot
+  issuerName: string | null;
+  issuerAddress: string | null;
+  issuerTaxId: string | null;
+  issuerEmail: string | null;
+  issuerPhone: string | null;
+  // Bill-to snapshot
+  billToName: string;
+  billToAddress: string | null;
+  billToEmail: string | null;
+  billToPhone: string | null;
+  // Money breakdown (major units)
+  subtotal: number;
+  discount: number;
+  taxRatePercent: number;
+  taxAmount: number;
+  total: number;
+  // Payment / bank details
+  paymentTerms: string | null;
+  notes: string | null;
+  bankAccountName: string | null;
+  bankAccountNumber: string | null;
+  bankName: string | null;
+  bankSwiftOrRouting: string | null;
+  lineItems: InvoiceLineItem[];
   billingRequest: {
     id: string;
     title: string;
@@ -181,6 +215,28 @@ export interface TimelineDayGroup {
   date: string; // 'today', 'yesterday', or ISO date
   dateLabel: string; // 'Today', 'Yesterday', 'June 15, 2026'
   entries: TimelineEntry[];
+}
+
+// New metrics types for daily status trends and breakdown
+export interface DayStatusData {
+  date: string;
+  SUBMITTED: number;
+  APPROVED: number;
+  REJECTED: number;
+  INVOICED: number;
+}
+
+export interface MonthlyTrendResponse {
+  month: string;
+  days: DayStatusData[];
+}
+
+export interface DailyStatusBreakdown {
+  date: string;
+  SUBMITTED: number;
+  APPROVED: number;
+  REJECTED: number;
+  INVOICED: number;
 }
 
 export interface CreateBillingRequestInput {

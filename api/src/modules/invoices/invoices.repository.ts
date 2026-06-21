@@ -13,6 +13,9 @@ const INVOICE_INCLUDE = {
       createdById: true,
     },
   },
+  lineItems: {
+    orderBy: { sortOrder: 'asc' },
+  },
 } satisfies Prisma.InvoiceInclude;
 
 // Any client that can issue queries: the primary, a read replica, or a tx client.
@@ -52,5 +55,24 @@ export class InvoicesRepository {
       include: INVOICE_INCLUDE,
       orderBy: { issuedAt: 'desc' },
     });
+  }
+
+  async findManyWithCount(
+    where: Prisma.InvoiceWhereInput,
+    page: number,
+    pageSize: number,
+  ) {
+    const skip = (page - 1) * pageSize;
+    const [items, total] = await Promise.all([
+      this.prisma.reader.invoice.findMany({
+        where,
+        include: INVOICE_INCLUDE,
+        orderBy: { issuedAt: 'desc' },
+        skip,
+        take: pageSize,
+      }),
+      this.prisma.reader.invoice.count({ where }),
+    ]);
+    return { items, total };
   }
 }

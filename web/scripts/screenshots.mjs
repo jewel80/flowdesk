@@ -109,14 +109,51 @@ async function openRequestByTitle(page, title) {
   await page.context().close();
 }
 
-// 8. Invoice detail (an ISSUED invoice; Accounts can mark it paid)
+// 8. Invoice detail — redesigned layout (issuer, bill-to, line items, totals)
 {
   const page = await newPage();
   await login(page, USERS.accounts);
   await page.goto(`${BASE}/invoices`);
-  await page.getByRole('row', { name: /Adventure Works/ }).getByRole('link').first().click();
-  await page.getByText('Source request').waitFor();
+  await page.locator('.table .link').first().click();
+  await page.getByText('Bill To').waitFor();
+  await page.getByText('Total Due').waitFor();
   await shoot(page, '08-invoice-detail');
+  await page.context().close();
+}
+
+// 9. PI Dashboard — analytics charts (bar chart + pie chart)
+{
+  const page = await newPage();
+  await login(page, USERS.manager);
+  await page.goto(`${BASE}/dashboard/pi`);
+  await page.getByText('Monthly Status Trend').waitFor();
+  await page.getByText('Status Snapshot').waitFor();
+  await page.waitForTimeout(600); // let recharts finish rendering
+  await shoot(page, '09-pi-dashboard-charts');
+  await page.context().close();
+}
+
+// 10. Billing requests — search UI
+{
+  const page = await newPage();
+  await login(page, USERS.manager);
+  await page.goto(`${BASE}/requests`);
+  await page.getByRole('table').waitFor();
+  await page.locator('.search-bar__input').fill('Security');
+  await page.waitForTimeout(500);
+  await shoot(page, '10-requests-search');
+  await page.context().close();
+}
+
+// 11. Invoices — search UI
+{
+  const page = await newPage();
+  await login(page, USERS.manager);
+  await page.goto(`${BASE}/invoices`);
+  await page.getByRole('table').waitFor();
+  await page.locator('.search-bar__input').fill('Adventure');
+  await page.waitForTimeout(500);
+  await shoot(page, '11-invoices-search');
   await page.context().close();
 }
 

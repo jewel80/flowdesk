@@ -1,10 +1,7 @@
-import { PIStatusChart } from '../components/PIStatusChart';
-import { DashboardTimeline } from '../components/DashboardTimeline';
-import { useDashboardTimeline } from '../api/hooks';
+import { DashboardKPICards } from '../components/DashboardKPICards';
+import { StatusTrendChart } from '../components/StatusTrendChart';
 
 export function PIDashboardPage() {
-  const timeline = useDashboardTimeline(30); // Last 30 days
-
   return (
     <section className="page page--dashboard">
       <header className="page__head">
@@ -12,16 +9,10 @@ export function PIDashboardPage() {
         <p>Organization-wide billing request performance</p>
       </header>
 
-      <div className="dashboard__overview">
-        <PIStatusChart />
-      </div>
+      <DashboardKPICards />
 
-      <div className="dashboard__timeline">
-        <h2>Daily Activity Timeline</h2>
-        <DashboardTimeline
-          groups={timeline.data || []}
-          isLoading={timeline.isLoading}
-        />
+      <div className="dashboard__trend">
+        <StatusTrendChart />
       </div>
     </section>
   );
