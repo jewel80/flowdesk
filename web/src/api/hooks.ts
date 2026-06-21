@@ -13,6 +13,8 @@ import type {
   HistoryResponse,
   Invoice,
   MetricsSummary,
+  MonthlyTrendResponse,
+  DailyStatusBreakdown,
   Paginated,
   PIChatResponse,
   PIStatusSummary,
@@ -22,6 +24,9 @@ import type {
 export interface RequestFilter {
   status?: string;
   mine?: boolean;
+  search?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export const queryKeys = {
@@ -31,10 +36,11 @@ export const queryKeys = {
   audit: (id: string) => ['audit', id] as const,
   history: (id: string) => ['history', id] as const,
   piChat: (id: string) => ['pi-chat', id] as const,
-  invoices: ['invoices'] as const,
   invoice: (id: string) => ['invoice', id] as const,
   dashboard: ['dashboard'] as const,
   dashboardTimeline: (days: number) => ['dashboard-timeline', days] as const,
+  dailyStatusTrend: (month: string) => ['daily-status-trend', month] as const,
+  dailyStatusBreakdown: (date: string) => ['daily-status-breakdown', date] as const,
 };
 
 export function useDemoUsers() {
@@ -56,9 +62,12 @@ export function useBillingRequests(filter: RequestFilter) {
   return useQuery({
     queryKey: queryKeys.requests(filter),
     queryFn: async () => {
-      const params: Record<string, string> = {};
+      const params: Record<string, string | number> = {};
       if (filter.status) params.status = filter.status;
       if (filter.mine) params.mine = 'true';
+      if (filter.search) params.search = filter.search;
+      if (filter.page) params.page = filter.page;
+      if (filter.pageSize) params.pageSize = filter.pageSize;
       return (
         await api.get<Paginated<BillingRequest>>('/billing-requests', { params })
       ).data;
@@ -93,10 +102,20 @@ export function useHistory(id: string) {
   });
 }
 
-export function useInvoices() {
+export function useInvoices(filter?: { search?: string; page?: number }) {
+  const search = filter?.search || '';
+  const page = filter?.page || 1;
+
   return useQuery({
-    queryKey: queryKeys.invoices,
-    queryFn: async () => (await api.get<Invoice[]>('/invoices')).data,
+    queryKey: ['invoices', search, page] as const,
+    queryFn: async () => {
+      const params: Record<string, string | number> = {};
+      if (filter?.search) params.search = filter.search;
+      if (filter?.page) params.page = filter.page;
+      return (
+        await api.get<Paginated<Invoice>>('/invoices', { params })
+      ).data;
+    },
   });
 }
 
@@ -174,7 +193,7 @@ export function useMarkInvoicePaid() {
     mutationFn: async (id: string) =>
       (await api.post<Invoice>(`/invoices/${id}/mark-paid`)).data,
     onSuccess: (_data, id) => {
-      void qc.invalidateQueries({ queryKey: queryKeys.invoices });
+      void qc.invalidateQueries({ queryKey: ['invoices'] });
       void qc.invalidateQueries({ queryKey: queryKeys.invoice(id) });
       void qc.invalidateQueries({ queryKey: queryKeys.metrics });
     },
@@ -199,6 +218,32 @@ export function useDashboardTimeline(days: number = 30) {
   });
 }
 
+export function useDailyStatusTrend(month?: string) {
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const selectedMonth = month || currentMonth;
+
+  return useQuery({
+    queryKey: queryKeys.dailyStatusTrend(selectedMonth),
+    queryFn: async () =>
+      (await api.get<MonthlyTrendResponse>('/metrics/daily-status-trend', {
+        params: { month: selectedMonth },
+      })).data,
+  });
+}
+
+export function useDailyStatusBreakdown(date?: string) {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const selectedDate = date || today;
+
+  return useQuery({
+    queryKey: queryKeys.dailyStatusBreakdown(selectedDate),
+    queryFn: async () =>
+      (await api.get<DailyStatusBreakdown>('/metrics/daily-status-breakdown', {
+        params: { date: selectedDate },
+      })).data,
+  });
+}
+
 function invalidateRequest(
   qc: ReturnType<typeof useQueryClient>,
   id: string,
@@ -207,5 +252,5 @@ function invalidateRequest(
   void qc.invalidateQueries({ queryKey: queryKeys.request(id) });
   void qc.invalidateQueries({ queryKey: queryKeys.audit(id) });
   void qc.invalidateQueries({ queryKey: queryKeys.metrics });
-  void qc.invalidateQueries({ queryKey: queryKeys.invoices });
+  void qc.invalidateQueries({ queryKey: ['invoices'] });
 }

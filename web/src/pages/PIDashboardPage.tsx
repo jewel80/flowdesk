@@ -1,4 +1,6 @@
 import { PIStatusChart } from '../components/PIStatusChart';
+import { StatusTrendChart } from '../components/StatusTrendChart';
+import { StatusPieChart } from '../components/StatusPieChart';
 import { DashboardTimeline } from '../components/DashboardTimeline';
 import { useDashboardTimeline } from '../api/hooks';
 
@@ -14,6 +16,11 @@ export function PIDashboardPage() {
 
       <div className="dashboard__overview">
         <PIStatusChart />
+      </div>
+
+      <div className="dashboard__charts">
+        <StatusTrendChart />
+        <StatusPieChart />
       </div>
 
       <div className="dashboard__timeline">

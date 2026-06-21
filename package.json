@@ -6,21 +6,21 @@
   "license": "MIT",
   "scripts": {
     "install:all": "npm --prefix api install && npm --prefix web install",
-
     "up": "docker compose up --build",
     "up:detached": "docker compose up --build -d",
     "dev": "docker compose --env-file .env.development up --build",
     "staging": "docker compose --env-file .env.staging -f docker-compose.yml -f docker-compose.prod.yml up --build -d",
     "prod": "docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml up --build -d",
     "replica": "docker compose -f docker-compose.yml -f docker-compose.replica.yml up --build",
-
     "down": "docker compose down",
     "down:clean": "docker compose down -v",
     "logs": "docker compose logs -f",
     "ps": "docker compose ps",
-
     "test:api": "npm --prefix api test",
     "test:api:e2e": "npm --prefix api run test:e2e",
     "test:web:e2e": "npm --prefix web run test:e2e"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.105.0"
   }
 }
