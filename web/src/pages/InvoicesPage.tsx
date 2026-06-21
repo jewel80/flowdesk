@@ -4,6 +4,7 @@ import { extractErrorMessage } from '../api/client';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { StatusBadge } from '../components/StatusBadge';
 import { SearchBar } from '../components/SearchBar';
+import { Pagination } from '../components/Pagination';
 import { formatDate, formatMoney } from '../lib/format';
 
 export function InvoicesPage() {
@@ -101,25 +102,13 @@ export function InvoicesPage() {
           </div>
 
           {pagination && pagination.totalPages > 1 && (
-            <div className="pagination">
-              <button
-                className="pagination__btn"
-                disabled={page === 1}
-                onClick={() => setPage(page - 1)}
-              >
-                Previous
-              </button>
-              <span className="pagination__info">
-                Page {page} of {pagination.totalPages}
-              </span>
-              <button
-                className="pagination__btn"
-                disabled={page === pagination.totalPages}
-                onClick={() => setPage(page + 1)}
-              >
-                Next
-              </button>
-            </div>
+            <Pagination
+              page={page}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              pageSize={pagination.pageSize}
+              onPageChange={setPage}
+            />
           )}
         </>
       )}

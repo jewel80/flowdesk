@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { StatusBadge } from '../components/StatusBadge';
 import { SearchBar } from '../components/SearchBar';
+import { Pagination } from '../components/Pagination';
 import { formatMoney, formatDate } from '../lib/format';
 import type { BillingRequestStatus } from '../api/types';
 
@@ -21,17 +22,18 @@ export function RequestsPage() {
   const [params, setParams] = useSearchParams();
   const status = params.get('status') ?? '';
   const search = params.get('search') ?? '';
+  const page = parseInt(params.get('page') || '1', 10);
 
   const { data, isLoading, isError, error } = useBillingRequests({
     status: status || undefined,
     search: search || undefined,
+    page,
   });
 
   const setStatus = (value: string) => {
     const next = new URLSearchParams(params);
     if (value) next.set('status', value);
     else next.delete('status');
-    // Reset to page 1 when changing filters
     next.delete('page');
     setParams(next, { replace: true });
   };
@@ -40,8 +42,13 @@ export function RequestsPage() {
     const next = new URLSearchParams(params);
     if (value) next.set('search', value);
     else next.delete('search');
-    // Reset to page 1 when searching
     next.delete('page');
+    setParams(next, { replace: true });
+  };
+
+  const setPage = (newPage: number) => {
+    const next = new URLSearchParams(params);
+    next.set('page', newPage.toString());
     setParams(next, { replace: true });
   };
 
@@ -104,40 +111,52 @@ export function RequestsPage() {
       )}
 
       {data && data.data.length > 0 && (
-        <div className="card table-card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Reference</th>
-                <th>Title</th>
-                <th>Customer</th>
-                <th className="num">Amount</th>
-                <th>Status</th>
-                <th>Created by</th>
-                <th>Updated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.data.map((req) => (
-                <tr key={req.id} className="table__row">
-                  <td>
-                    <Link className="link" to={`/requests/${req.id}`}>
-                      {req.reference}
-                    </Link>
-                  </td>
-                  <td>{req.title}</td>
-                  <td>{req.customerName}</td>
-                  <td className="num">{formatMoney(req.amount, req.currency)}</td>
-                  <td>
-                    <StatusBadge status={req.status} />
-                  </td>
-                  <td>{req.createdBy.name}</td>
-                  <td className="muted">{formatDate(req.updatedAt)}</td>
+        <>
+          <div className="card table-card">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Title</th>
+                  <th>Customer</th>
+                  <th className="num">Amount</th>
+                  <th>Status</th>
+                  <th>Created by</th>
+                  <th>Updated</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {data.data.map((req) => (
+                  <tr key={req.id} className="table__row">
+                    <td>
+                      <Link className="link" to={`/requests/${req.id}`}>
+                        {req.reference}
+                      </Link>
+                    </td>
+                    <td>{req.title}</td>
+                    <td>{req.customerName}</td>
+                    <td className="num">{formatMoney(req.amount, req.currency)}</td>
+                    <td>
+                      <StatusBadge status={req.status} />
+                    </td>
+                    <td>{req.createdBy.name}</td>
+                    <td className="muted">{formatDate(req.updatedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {data.pagination.totalPages > 1 && (
+            <Pagination
+              page={page}
+              totalPages={data.pagination.totalPages}
+              total={data.pagination.total}
+              pageSize={data.pagination.pageSize}
+              onPageChange={setPage}
+            />
+          )}
+        </>
       )}
     </section>
   );
