@@ -31,9 +31,7 @@ test.describe('Invoice detail page', () => {
     await expect(page.getByText('Total Due')).toBeVisible();
   });
 
-  test('PDF download button is present and shows error gracefully when endpoint unavailable', async ({
-    page,
-  }) => {
+  test('PDF download button triggers a file download', async ({ page }) => {
     const title = `InvPdf-${Date.now()}`;
 
     await login(page, USERS.sales);
@@ -51,11 +49,17 @@ test.describe('Invoice detail page', () => {
     const pdfBtn = page.getByRole('button', { name: 'Download PDF' });
     await expect(pdfBtn).toBeVisible();
 
-    // Click — endpoint doesn't exist yet, expect an error message not a crash
-    await pdfBtn.click();
-    await expect(page.locator('.form__error')).toBeVisible({ timeout: 10_000 });
+    // Wait for the download event triggered by the PDF endpoint
+    const [download] = await Promise.all([
+      page.waitForEvent('download', { timeout: 15_000 }),
+      pdfBtn.click(),
+    ]);
 
-    // Page should not have navigated away
+    // Filename should match INV-YYYY-NNNN.pdf
+    expect(download.suggestedFilename()).toMatch(/^INV-.+\.pdf$/);
+
+    // No error shown, page stays on invoice
+    await expect(page.locator('.form__error')).toHaveCount(0);
     await expect(page).toHaveURL(/\/invoices\//);
   });
 

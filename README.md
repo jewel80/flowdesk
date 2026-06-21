@@ -31,15 +31,17 @@ trail**, so at any moment you can answer *who did what, when, and why*.
 9. [Tech stack & rationale](#tech-stack--rationale)
 10. [Data model](#data-model)
 11. [The workflow state machine](#the-workflow-state-machine)
-12. [API reference](#api-reference)
-13. [Project structure](#project-structure)
-14. [Environments & npm scripts](#environments--npm-scripts)
-15. [Troubleshooting](#troubleshooting)
-16. [Testing](#testing)
-17. [Security & access control](#security--access-control)
-18. [Assumptions](#assumptions)
-19. [What I'd improve with more time](#what-id-improve-with-more-time)
-20. [AI-assisted development note](#ai-assisted-development-note)
+12. [Analytics & reporting](#analytics--reporting)
+13. [Search](#search)
+14. [API reference](#api-reference)
+15. [Project structure](#project-structure)
+16. [Environments & npm scripts](#environments--npm-scripts)
+17. [Troubleshooting](#troubleshooting)
+18. [Testing](#testing)
+19. [Security & access control](#security--access-control)
+20. [Assumptions](#assumptions)
+21. [What I'd improve with more time](#what-id-improve-with-more-time)
+22. [AI-assisted development note](#ai-assisted-development-note)
 
 ---
 
@@ -69,21 +71,22 @@ verified:
 | At least 2–3 user roles | ✅ | `SALES`, `ACCOUNTS`, `MANAGER` (`schema.prisma` `Role`) | RBAC unit + e2e tests |
 | Clear workflow with statuses | ✅ | `DRAFT → SUBMITTED → APPROVED → INVOICED`, `SUBMITTED → REJECTED → DRAFT` (`billing-requests/workflow.ts`) | `workflow.spec.ts` |
 | Create / view / approve-reject / update | ✅ | `billing-requests.controller.ts` (+ submit/resubmit, invoice mark-paid) | e2e lifecycle test |
-| Basic dashboard / list views | ✅ | `web` Dashboard, Requests list (+ filters), Invoices list | Playwright e2e |
+| Basic dashboard / list views | ✅ | Dashboard, Requests list (+ status filters + search), Invoices list (+ search) | Playwright e2e |
 | Audit trail / activity history | ✅ | Append-only `AuditLog`, written in-transaction (`audit.service.ts`) | e2e asserts full trail |
-| Sensible data model | ✅ | `User`, `BillingRequest`, `Invoice`, `AuditLog` (enums, FKs, money-as-cents) | [Data model](#data-model) |
+| Sensible data model | ✅ | `User`, `BillingRequest`, `Invoice`, `InvoiceLineItem`, `AuditLog` | [Data model](#data-model) |
 | Basic validation & error states | ✅ | `class-validator` DTOs, global `ValidationPipe`, consistent error envelope | e2e validation test |
-| Seed data for review | ✅ | `prisma/seed.ts` (4 users + requests across every status) | runs on container start |
+| Seed data for review | ✅ | `prisma/seed.ts` — 4 users, 12 months historical requests + invoices with line items | runs on container start |
+| Analytics / reporting | ✅ | Monthly status trend (bar chart) + daily status snapshot (pie chart) on PI Dashboard | `analytics.spec.ts` |
+| Search | ✅ | Debounced search on both Requests and Invoices list pages (title/customer) | `search.spec.ts` |
+| PDF invoice export | ✅ | `GET /invoices/:id/pdf` streams a professional PDF (pdfkit, A4) | `invoice-detail.spec.ts` |
 
 **Optional extras implemented:** Role-based access control, simulated
 notifications (worker logs), reporting/summary metrics, an accounting/invoice
-object model, and a rejection-reason "comment". **Beyond the brief:** async
-queue-based invoice generation, read/write DB splitting, JWT auth, and three test
-layers (unit + API e2e + browser e2e).
-
-**Deliberately out of scope** (noted under [improvements](#what-id-improve-with-more-time)):
-file attachments, a configurable approval-rules engine, exportable reports, and
-AI-assisted draft generation.
+object model, a rejection-reason "comment", analytics charts (bar + pie using
+Recharts), search (debounced, URL-persisted), and PDF invoice download (pdfkit).
+**Beyond the brief:** async queue-based invoice generation, read/write DB
+splitting, JWT auth, Swagger UI (`/api/docs`), and three test layers
+(unit + API e2e + browser e2e).
 
 ---
 
@@ -120,6 +123,7 @@ build takes a couple of minutes; subsequent runs are cached.
 | **Web app** | http://localhost:8080 |
 | API base | http://localhost:3000/api/v1 |
 | API health | http://localhost:3000/api/v1/health |
+| **Swagger UI** | http://localhost:3000/api/docs |
 
 ### Verify it's up
 
@@ -153,8 +157,8 @@ them with one-click fill.
 | --- | --- | --- |
 | **Sales** | `sales@flowdesk.dev` | Create / edit / submit / revise own requests |
 | **Sales** | `sales2@flowdesk.dev` | (a second sales user, to show ownership scoping) |
-| **Accounts** | `accounts@flowdesk.dev` | Approve / reject requests, mark invoices paid |
-| **Manager** | `manager@flowdesk.dev` | Read-only org-wide dashboards & metrics |
+| **Accounts** | `accounts@flowdesk.dev` | Approve / reject requests, mark invoices paid, download PDFs |
+| **Manager** | `manager@flowdesk.dev` | Read-only org-wide dashboards, metrics, charts |
 
 ---
 
@@ -170,8 +174,12 @@ A visual tour of the main interfaces (running on the seeded demo data).
 | ![Billing requests list](docs/screenshots/03-requests-list.png) | ![New request form](docs/screenshots/04-new-request.png) |
 | **Approval page** (Accounts approves / rejects) | **Request detail + audit trail** |
 | ![Approval page](docs/screenshots/06-approval.png) | ![Request detail and audit timeline](docs/screenshots/05-request-detail.png) |
-| **Invoices** (auto-generated on approval) | **Invoice detail** (Accounts marks paid) |
+| **Invoices** (auto-generated on approval) | **Invoice detail** (issuer, bill-to, line items, totals, PDF) |
 | ![Invoices list](docs/screenshots/07-invoices-list.png) | ![Invoice detail](docs/screenshots/08-invoice-detail.png) |
+| **PI Dashboard** (monthly trend + daily snapshot) | **Requests search** (debounced, URL-persisted) |
+| ![PI Dashboard charts](docs/screenshots/09-pi-dashboard-charts.png) | ![Requests search](docs/screenshots/10-requests-search.png) |
+| **Invoices search** | |
+| ![Invoices search](docs/screenshots/11-invoices-search.png) | |
 
 > Screenshots are regenerated from the live app with
 > [`web/scripts/screenshots.mjs`](web/scripts/screenshots.mjs) (Playwright) — run
@@ -190,7 +198,8 @@ A visual tour of the main interfaces (running on the seeded demo data).
    simulated notification — all without blocking the approval response.
 4. **Revise & resubmit (Sales).** If rejected, Sara sees the reason, reopens the
    request to a draft, fixes it and submits again.
-5. **Get paid (Accounts).** Aaron marks the issued invoice as paid.
+5. **Get paid (Accounts).** Aaron marks the issued invoice as paid and downloads
+   the PDF for the customer.
 6. **Oversee (Manager).** Maria sees organisation-wide metrics and the status
    breakdown; Sales users see only their own figures.
 
@@ -337,6 +346,8 @@ docker exec flowdesk-postgres-1 \
 | Database | **PostgreSQL** | Relational integrity fits a workflow with foreign keys, enums and an audit table; transactions keep state + audit consistent. Supports streaming replication for the read/write split. |
 | Queue / async | **BullMQ + Redis** | Moves invoice generation off the request path with retries and idempotency — a real reason to use a queue, not decoration. |
 | Frontend | **React + Vite + TypeScript** | Fast, lightweight SPA; **TanStack Query** gives clean server-state with loading/error/empty handling for free. |
+| Charts | **Recharts** | Composable, React-native; bar + pie charts driven directly by TanStack Query data. |
+| PDF export | **pdfkit** | Pure Node.js; streams an A4 PDF directly to the HTTP response — no temp files, no headless browser. |
 | Auth | **JWT (mocked users)** | The brief says not to over-invest in auth; this is enough to demonstrate authn/authz cleanly. |
 | Deployment | **Docker Compose** | One command brings up db + cache + api + web, fully self-contained. |
 
@@ -344,22 +355,22 @@ docker exec flowdesk-postgres-1 \
 
 - **Explicit state-machine table over scattered `if` checks.** All transitions,
   their allowed roles and ownership rules live in one declarative
-  [`workflow.ts`](api/src/modules/billing-requests/workflow.ts). One source of
-  truth, trivially unit-testable, and reused to tell the UI which actions are
-  available.
+  [`workflow.ts`](api/src/modules/billing-requests/workflow.ts).
 - **Audit written in the same transaction as the state change.** An action and
-  its audit record can never diverge. `AuditService.record()` accepts a Prisma
-  transaction client for exactly this.
+  its audit record can never diverge.
 - **Money stored as integer cents.** Avoids floating-point drift; conversion to
   decimals happens only at the API boundary.
-- **Repository layer over Prisma-in-services.** Services depend on a narrow
-  data-access boundary, which keeps business logic pure and easy to mock in
-  tests.
+- **Invoice as a legal snapshot.** Issuer info, bill-to, and line items are copied
+  into the invoice row at generation time — they remain accurate even if the
+  request or customer data later changes.
+- **Audit log as event source for charts.** The bar and pie charts count
+  `AuditLog.toStatus` events per day, not the current distribution of live
+  records. This means the charts show *workflow activity* (how many approvals
+  happened today?), which is more useful for a manager than a simple status count.
 - **Read/write connection splitting.** Writes/transactions hit the primary; reads
-  round-robin across replicas (with single-DB fallback). See
-  [Read/write database splitting](#readwrite-database-splitting).
+  round-robin across replicas (with single-DB fallback).
 - **Global auth, opt-out per route.** `JwtAuthGuard` is global; public endpoints
-  (login, health, demo-users) opt out with `@Public()`. Secure by default.
+  opt out with `@Public()`. Secure by default.
 - **Async invoice generation over inline.** Approval stays fast; the heavier,
   failure-prone work is retried independently.
 
@@ -368,32 +379,38 @@ docker exec flowdesk-postgres-1 \
 ## Data model
 
 ```
-┌──────────────┐         ┌────────────────────────┐         ┌──────────────┐
-│    User      │         │    BillingRequest      │         │   Invoice    │
-├──────────────┤         ├────────────────────────┤         ├──────────────┤
-│ id (uuid)    │◄───┐    │ id (uuid)              │    ┌───►│ id (uuid)    │
-│ email (uniq) │    ├────┤ createdById  (FK)      │    │    │ number (seq) │
-│ name         │    └────┤ reviewedById (FK,null) │    │ 1:1│ amountCents  │
-│ role (enum)  │         │ number (seq → ref)     │────┘    │ status(enum) │
-│ passwordHash │         │ title, customerName    │         │ dueDate      │
-└──────┬───────┘         │ amountCents, currency  │         │ paidAt       │
-       │                 │ status (enum)          │         └──────────────┘
-       │                 │ rejectionReason        │
-       │                 └───────────┬────────────┘
-       │ actor (FK,null)             │ 1:N
-       │                 ┌───────────▼────────────┐
-       └─────────────────┤        AuditLog        │
-                         ├────────────────────────┤
-                         │ action (enum)          │
-                         │ fromStatus, toStatus   │
-                         │ note, metadata (json)  │
-                         │ actorId (FK, nullable) │  ← null = system action
-                         │ createdAt              │
-                         └────────────────────────┘
+┌──────────────┐         ┌────────────────────────┐         ┌────────────────────────┐
+│    User      │         │    BillingRequest      │         │       Invoice          │
+├──────────────┤         ├────────────────────────┤         ├────────────────────────┤
+│ id (uuid)    │◄───┐    │ id (uuid)              │    ┌───►│ id (uuid)              │
+│ email (uniq) │    ├────┤ createdById  (FK)      │    │    │ number (seq)           │
+│ name         │    └────┤ reviewedById (FK,null) │    │ 1:1│ amountCents, currency  │
+│ role (enum)  │         │ number (seq → ref)     │────┘    │ status (enum)          │
+│ passwordHash │         │ title, customerName    │         │ dueDate, paidAt        │
+└──────┬───────┘         │ amountCents, currency  │         │ issuerName/Address/..  │ ← snapshot
+       │                 │ status (enum)          │         │ billToName/Address/..  │ ← snapshot
+       │                 │ rejectionReason        │         │ subtotalCents          │
+       │                 └───────────┬────────────┘         │ discountCents          │
+       │ actor (FK,null)             │ 1:N                  │ taxRatePercent         │
+       │                 ┌───────────▼────────────┐         │ taxAmountCents         │
+       └─────────────────┤        AuditLog        │         │ totalCents             │
+                         ├────────────────────────┤         │ bankName/SWIFT/..      │
+                         │ action (enum)          │         └──────────┬─────────────┘
+                         │ fromStatus, toStatus   │                    │ 1:N
+                         │ note, metadata (json)  │         ┌──────────▼─────────────┐
+                         │ actorId (FK, nullable) │         │    InvoiceLineItem     │
+                         │ createdAt              │         ├────────────────────────┤
+                         └────────────────────────┘         │ description, quantity  │
+                                                            │ unitPriceCents         │
+                                                            │ amountCents, sortOrder │
+                                                            └────────────────────────┘
 ```
 
 - **`number`** columns are DB auto-increment sequences; the human-friendly
   `BR-2026-0001` / `INV-2026-0001` references are derived from them (race-free).
+- **Invoice is a legal snapshot.** `issuerName`, `billToName`, all address fields
+  and line items are copied at generation time so the document remains accurate
+  even if source data later changes.
 - **`AuditLog.actorId` is nullable** so system-generated actions (async invoice
   generation) are represented honestly as having no human actor.
 - Enums (`Role`, `BillingRequestStatus`, `InvoiceStatus`, `AuditAction`) are
@@ -431,10 +448,81 @@ Invalid transitions return **409 Conflict**; role/ownership violations return
 
 ---
 
+## Analytics & reporting
+
+The **PI Dashboard** (`/dashboard/pi`) provides two charts visible to Manager
+role (and scoped to own data for Sales):
+
+### Monthly Status Trend (bar chart)
+
+- **What:** per-day counts of workflow transitions (`SUBMITTED`, `APPROVED`,
+  `REJECTED`, `INVOICED`) for a selected calendar month.
+- **Data definition:** counts of `AuditLog.toStatus` events grouped by
+  `DATE_TRUNC('day', createdAt)`. Every day in the month is included — days with
+  no activity get zero counts (not missing keys).
+- **Why events not current status?** A bar chart of "how many approvals happened
+  each day this month" is a leading indicator of throughput. A snapshot of current
+  status counts would only tell you where things stand today, not how the team
+  performed over time.
+- **Endpoint:** `GET /metrics/daily-status-trend?month=2026-06`
+- **RBAC:** Sales sees only transitions on their own requests; Manager/Accounts
+  see org-wide.
+
+### Status Snapshot (pie chart)
+
+- **What:** status breakdown (same four statuses) for a single selected date.
+- **Data definition:** `AuditLog.toStatus` counts for the chosen date (not a
+  live request status count — same event-source rationale as above).
+- **Endpoint:** `GET /metrics/daily-status-breakdown?date=2026-06-21`
+- **RBAC:** same as above.
+
+### Shared color palette
+
+`web/src/lib/statusColors.ts` exports a single `STATUS_COLORS` constant shared
+by both chart components and the status badge, so colors are never out of sync.
+
+---
+
+## Search
+
+Both list pages support a **debounced, URL-persisted search** bar.
+
+### Billing Requests (`/requests`)
+
+```
+GET /billing-requests?search=acme&status=SUBMITTED&page=1
+```
+
+- `search` — case-insensitive match on `title` OR `customerName`.
+- Combinable with `status`, `mine`, `page`, `pageSize`.
+
+### Invoices (`/invoices`)
+
+```
+GET /invoices?search=adventure&page=1
+```
+
+- `search` — case-insensitive match on `billToName` OR the linked request's
+  `title`.
+
+### Frontend behaviour
+
+- **300 ms debounce** — no request is fired while the user is still typing.
+- **URL state** — the search term is stored in `?search=` so the page is
+  shareable and survives a browser refresh.
+- **Page reset** — changing the search term resets pagination to page 1.
+- **Clear button** — the `×` button clears the search and restores the full list.
+
+---
+
 ## API reference
 
 Base URL: `/api/v1`. All responses are JSON. All endpoints require a
 `Authorization: Bearer <token>` header **except** those marked _public_.
+
+> **Interactive docs:** Swagger UI is available at
+> [`http://localhost:3000/api/docs`](http://localhost:3000/api/docs) while the
+> stack is running — try every endpoint directly in the browser.
 
 ### Auth
 
@@ -449,7 +537,7 @@ Base URL: `/api/v1`. All responses are JSON. All endpoints require a
 | Method | Path | Access | Description |
 | --- | --- | --- | --- |
 | POST | `/billing-requests` | Sales | Create a draft |
-| GET | `/billing-requests?status=&mine=&page=&pageSize=` | any | List (Sales auto-scoped to own) |
+| GET | `/billing-requests?status=&search=&mine=&page=&pageSize=` | any | List (Sales auto-scoped to own) |
 | GET | `/billing-requests/:id` | any* | Get one |
 | GET | `/billing-requests/:id/audit` | any* | Full audit trail |
 | PATCH | `/billing-requests/:id` | Sales (owner) | Edit a draft |
@@ -464,15 +552,20 @@ Base URL: `/api/v1`. All responses are JSON. All endpoints require a
 
 | Method | Path | Access | Description |
 | --- | --- | --- | --- |
-| GET | `/invoices` | any | List (Sales auto-scoped to own) |
-| GET | `/invoices/:id` | any* | Get one |
+| GET | `/invoices?search=&page=&pageSize=` | any | List (Sales auto-scoped to own) |
+| GET | `/invoices/:id` | any* | Get one (full detail incl. line items, issuer, totals) |
+| GET | `/invoices/:id/pdf` | any* | Stream invoice as PDF (`application/pdf`) |
 | POST | `/invoices/:id/mark-paid` | Accounts | ISSUED → PAID |
+
+`*` Sales users may only view invoices for their own requests.
 
 ### Metrics & health
 
 | Method | Path | Access | Description |
 | --- | --- | --- | --- |
 | GET | `/metrics/summary` | any | Dashboard counts/totals (Sales scoped to self) |
+| GET | `/metrics/daily-status-trend?month=YYYY-MM` | any | Per-day status transition counts for the month |
+| GET | `/metrics/daily-status-breakdown?date=YYYY-MM-DD` | any | Status transition counts for a single date |
 | GET | `/health` | public | Liveness + DB check |
 
 ### Example
@@ -487,6 +580,10 @@ curl -s http://localhost:3000/api/v1/auth/login \
 curl -s http://localhost:3000/api/v1/billing-requests \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"title":"Consulting","customerName":"Acme","amount":1500.00}'
+
+# Download an invoice as PDF
+curl -s http://localhost:3000/api/v1/invoices/<id>/pdf \
+  -H "Authorization: Bearer $TOKEN" --output invoice.pdf
 ```
 
 ### Error envelope
@@ -522,9 +619,9 @@ flowdesk/
 │  └─ lead_full_stack_take_home_tests.md.pdf
 ├─ api/                        # NestJS backend (feature-based modules)
 │  ├─ prisma/
-│  │  ├─ schema.prisma         # data model
+│  │  ├─ schema.prisma         # data model (User, BillingRequest, Invoice, InvoiceLineItem, AuditLog)
 │  │  ├─ migrations/           # versioned SQL migrations
-│  │  └─ seed.ts               # demo data
+│  │  └─ seed.ts               # 12 months realistic demo data
 │  ├─ src/
 │  │  ├─ common/               # prisma service, exception filter, utils, types
 │  │  ├─ config/               # typed config + env validation (Joi)
@@ -532,9 +629,9 @@ flowdesk/
 │  │     ├─ auth/              # JWT, guards, decorators, RBAC
 │  │     ├─ users/
 │  │     ├─ billing-requests/  # controller · service · repository · workflow
-│  │     ├─ invoices/          # service · repository · BullMQ processor
+│  │     ├─ invoices/          # service · repository · processor · pdf.service
 │  │     ├─ audit/             # append-only audit trail
-│  │     ├─ metrics/           # dashboard aggregates
+│  │     ├─ metrics/           # dashboard aggregates + trend/breakdown endpoints
 │  │     ├─ queue/             # BullMQ wiring + job constants
 │  │     └─ health/
 │  ├─ test/                    # Jest + supertest e2e (boots the real app)
@@ -542,12 +639,17 @@ flowdesk/
 │  └─ docker-entrypoint.sh     # migrate deploy → seed → start
 └─ web/                        # React + Vite + TS SPA
    ├─ e2e/                     # Playwright browser-driven E2E tests
+   │  ├─ analytics.spec.ts     # bar/pie chart behaviour
+   │  ├─ search.spec.ts        # debounced search on requests + invoices
+   │  ├─ invoice-detail.spec.ts # full invoice layout + PDF download
+   │  └─ workflow.spec.ts      # full lifecycle + RBAC
    ├─ src/
    │  ├─ api/                  # axios client, typed hooks (react-query)
    │  ├─ auth/                 # auth context
-   │  ├─ components/           # layout, states, badges, route guard
-   │  ├─ pages/                # login, dashboard, requests, invoices
-   │  └─ lib/                  # formatting helpers
+   │  ├─ components/           # layout, states, badges, charts, search bar
+   │  ├─ lib/                  # money formatting, statusColors constant
+   │  └─ pages/                # login, dashboard, pi-dashboard, requests, invoices
+   ├─ scripts/screenshots.mjs  # Playwright screenshot script (11 captures)
    ├─ Dockerfile               # build → nginx
    └─ nginx.conf               # static serving + /api proxy + SPA fallback
 ```
@@ -654,11 +756,17 @@ Unit tests cover the **core business logic** — the part most worth protecting:
   invalid-transition → 409, wrong-role → 403, non-owner → 403, and that approval
   enqueues the invoice job.
 - `invoices.service.spec.ts` — async invoice generation: **idempotency**, the
-  APPROVED → INVOICED transition, and refusal to invoice a non-approved request.
+  APPROVED → INVOICED transition, refusal to invoice a non-approved request, and
+  **totals math** (cents-to-major-units mapping, 1-cent precision, line item
+  amounts, discount + tax round-trips).
+- `metrics.service.spec.ts` — `getDailyStatusTrend`: zero-fill for empty days,
+  correct count bucketing, RBAC scoping (Sales vs Manager), month-boundary
+  correctness (28/29/30/31 days). `getDailyStatusBreakdown`: all-zeros for empty
+  date, correct aggregation, date string passed through unchanged.
 
 ```bash
 cd api && npm test
-# 3 suites, 19 tests
+# 4 suites, 32 tests
 ```
 
 ### Backend end-to-end tests (Jest + supertest)
@@ -705,15 +813,20 @@ cd api && node e2e-smoke.mjs
 ### Frontend end-to-end tests (Playwright)
 
 A real browser-driven suite in [`web/e2e`](web/e2e) exercises the UI through the
-full workflow against the running app: the happy path (create → submit → approve
-→ async invoice → mark paid), the reject → revise loop, RBAC (Sales can't
-approve, Manager is read-only), and the dashboard.
+full workflow against the running app.
+
+| Spec file | What it covers | Tests |
+| --- | --- | --- |
+| `workflow.spec.ts` | Full lifecycle (create→submit→approve→invoice→paid), reject→revise loop, RBAC | 4 |
+| `analytics.spec.ts` | Bar chart / pie chart visibility, no-data empty states, date switching | 5 |
+| `search.spec.ts` | Requests search (filter/clear/no-match/page-reset), Invoices search | 7 |
+| `invoice-detail.spec.ts` | Full layout (issuer/bill-to/line items/totals), PDF download, mark-paid RBAC | 5 |
 
 ```bash
 # with the stack running (web on :8080):
 cd web
 npm run test:e2e:install   # one-time: download Chromium
-npm run test:e2e           # 4 tests
+npm run test:e2e           # 21 tests across 4 files
 # Target a vite dev server instead: E2E_BASE_URL=http://localhost:5173 npm run test:e2e
 ```
 
@@ -744,7 +857,8 @@ npm run test:e2e           # 4 tests
   or registration UI — seeded users are sufficient to demonstrate authn/authz.
 - **Single currency per request, no FX.** Currency is stored but not converted.
 - **Approval auto-generates exactly one invoice** for the full request amount
-  (no partial billing / line items).
+  with a single line item. Real systems would accept a structured line-item input
+  on the invoice-generation step.
 - **"Notifications" are simulated** as structured log lines from the worker
   rather than real email/Slack.
 - **Demo secrets are committed on purpose** (`JWT_SECRET` default, demo
@@ -753,6 +867,9 @@ npm run test:e2e           # 4 tests
 - **Seed is destructive for transactional data** (it clears requests/invoices/
   audit then re-creates them) but upserts users, so re-running gives a clean,
   predictable dataset.
+- **Charts count audit-log events, not live status counts.** This makes the
+  charts meaningful for workflow analysis (throughput per day) rather than just
+  a snapshot of current record distribution.
 
 ---
 
@@ -766,23 +883,28 @@ npm run test:e2e           # 4 tests
   notifications table.
 - **Optimistic concurrency** (a `version` column) to prevent two reviewers acting
   on the same request simultaneously.
-- **Richer reporting**: trend charts, CSV/PDF invoice export, ageing buckets for
-  outstanding invoices.
-- **OpenAPI/Swagger** generated from the DTOs, and request/response examples.
+- **Structured line-item input** on invoice creation (currently a single line
+  item is auto-generated from the request amount; a real system would accept
+  an itemised breakdown from Accounts at approval time).
+- **Richer reporting**: CSV export, ageing buckets for outstanding invoices,
+  trend comparisons across months.
 - **Observability**: structured JSON logs, request IDs, and queue dashboards
   (Bull Board).
 - **Refresh tokens + proper user management** if auth became central.
+- **Multi-page PDF** for invoices with many line items (current layout fits a
+  single A4; pdfkit supports `addPage()` but the layout logic needs to measure
+  and overflow correctly).
 
 ---
 
 ## AI-assisted development note
 
-This solution was built with the help of AI assistance (ChatGPT, Grok, Copilot, Claude ). I directed the
+This solution was built with the help of AI assistance (ChatGPT, Grok, Copilot, Claude). I directed the
 architecture and design decisions, reviewed every file as I would my own PR, and
-**verified the result by actually running it**: the unit suite passes (19 tests),
+**verified the result by actually running it**: the unit suite passes (32 tests),
 and the full stack was brought up with `docker compose up --build` and driven
 end-to-end through the complete lifecycle (the smoke test above). Two real issues
 surfaced during that verification — a Prisma engine target mismatch on Alpine and
 a TypeScript build-output path bug — and both were diagnosed and fixed before
-This was considered done. I own all of the code, architecture, and documentation
+this was considered done. I own all of the code, architecture, and documentation
 here.
