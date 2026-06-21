@@ -272,6 +272,94 @@ async function main(): Promise<void> {
     }
   }
 
+  // Seed May and June with day-wise spread so the bar chart looks rich
+  console.log('📅 Seeding May–June with day-wise activity for chart display...');
+
+  const thisYear = new Date().getFullYear();
+  const todayTs = new Date();
+  todayTs.setHours(23, 59, 59, 999);
+
+  // Collect alternating weekdays from May 1 through today
+  const recentDays: Date[] = [];
+  for (const month of [4, 5] as const) {          // 4 = May, 5 = June (0-based)
+    const daysInMonth = new Date(thisYear, month + 1, 0).getDate();
+    let weekdayCount = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(thisYear, month, d, 9, 0, 0);
+      if (date > todayTs) break;
+      const dow = getDayOfWeek(date);
+      if (dow === 0 || dow === 6) continue;        // skip weekends
+      weekdayCount++;
+      if (weekdayCount % 2 === 1) recentDays.push(date); // keep every other weekday
+    }
+  }
+
+  let recentCount = 0;
+  for (const requestDate of recentDays) {
+    const requestsOnDay = Math.floor(Math.random() * 2) + 2; // 2–3 per day
+    for (let i = 0; i < requestsOnDay; i++) {
+      const statusRoll = Math.random();
+      let status: BillingRequestStatus;
+      let lifecycleTrail: any[] = [];
+      let invoiceData: any = null;
+
+      if (statusRoll < 0.12) {
+        status = BillingRequestStatus.DRAFT;
+        lifecycleTrail = [
+          { action: AuditAction.CREATED, actor: getRandomUser(users, 'sales'), toStatus: BillingRequestStatus.DRAFT },
+        ];
+      } else if (statusRoll < 0.30) {
+        status = BillingRequestStatus.SUBMITTED;
+        lifecycleTrail = [
+          { action: AuditAction.CREATED, actor: getRandomUser(users, 'sales'), toStatus: BillingRequestStatus.DRAFT },
+          { action: AuditAction.SUBMITTED, actor: getRandomUser(users, 'sales'), fromStatus: BillingRequestStatus.DRAFT, toStatus: BillingRequestStatus.SUBMITTED },
+        ];
+      } else if (statusRoll < 0.70) {
+        const reviewer = users.aaron;
+        lifecycleTrail = [
+          { action: AuditAction.CREATED, actor: getRandomUser(users, 'sales'), toStatus: BillingRequestStatus.DRAFT },
+          { action: AuditAction.SUBMITTED, actor: getRandomUser(users, 'sales'), fromStatus: BillingRequestStatus.DRAFT, toStatus: BillingRequestStatus.SUBMITTED },
+          { action: AuditAction.APPROVED, actor: reviewer, fromStatus: BillingRequestStatus.SUBMITTED, toStatus: BillingRequestStatus.APPROVED },
+        ];
+        if (Math.random() < 0.75) {
+          status = BillingRequestStatus.INVOICED;
+          lifecycleTrail.push({ action: AuditAction.INVOICE_GENERATED, actor: reviewer, fromStatus: BillingRequestStatus.APPROVED, toStatus: BillingRequestStatus.INVOICED, note: 'Invoice generated' });
+          const invoiceStatus = Math.random() < 0.45 ? InvoiceStatus.PAID : InvoiceStatus.ISSUED;
+          invoiceData = { status: invoiceStatus };
+          if (invoiceStatus === InvoiceStatus.PAID) {
+            lifecycleTrail.push({ action: AuditAction.INVOICE_PAID, actor: reviewer, note: 'Invoice marked as paid' });
+          }
+        } else {
+          status = BillingRequestStatus.APPROVED;
+        }
+      } else {
+        status = BillingRequestStatus.REJECTED;
+        const reviewer = users.aaron;
+        lifecycleTrail = [
+          { action: AuditAction.CREATED, actor: getRandomUser(users, 'sales'), toStatus: BillingRequestStatus.DRAFT },
+          { action: AuditAction.SUBMITTED, actor: getRandomUser(users, 'sales'), fromStatus: BillingRequestStatus.DRAFT, toStatus: BillingRequestStatus.SUBMITTED },
+          { action: AuditAction.REJECTED, actor: reviewer, fromStatus: BillingRequestStatus.SUBMITTED, toStatus: BillingRequestStatus.REJECTED, note: getRejectionReason() },
+        ];
+      }
+
+      await createRealisticRequest({
+        title: generateRequestTitle(requestDate.getMonth()),
+        customerName: CUSTOMERS[Math.floor(Math.random() * CUSTOMERS.length)],
+        amountCents: generateAmountCents(),
+        description: DESCRIPTIONS[Math.floor(Math.random() * DESCRIPTIONS.length)],
+        status,
+        createdBy: getRandomUser(users, 'sales'),
+        reviewedBy: status === BillingRequestStatus.APPROVED || status === BillingRequestStatus.REJECTED ? users.aaron : undefined,
+        rejectionReason: status === BillingRequestStatus.REJECTED ? getRejectionReason() : undefined,
+        invoice: invoiceData,
+        trail: lifecycleTrail,
+        requestDate,
+      });
+      recentCount++;
+    }
+  }
+  console.log(`   Added ${recentCount} recent requests across ${recentDays.length} days`);
+
   console.log('✅ Seed complete! Demo accounts (password: %s):', DEMO_PASSWORD);
   console.table([
     { email: sara.email, role: sara.role },

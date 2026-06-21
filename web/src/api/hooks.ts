@@ -1,6 +1,7 @@
 import {
   useMutation,
   useQuery,
+  useQueries,
   useQueryClient,
 } from '@tanstack/react-query';
 import { api } from './client';
@@ -229,6 +230,27 @@ export function useDailyStatusTrend(month?: string) {
         params: { month: selectedMonth },
       })).data,
   });
+}
+
+export function useMonthlyStatusTrends(n: number = 6) {
+  const monthStrings = Array.from({ length: n }, (_, i) => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - i);
+    return d.toISOString().slice(0, 7);
+  }).reverse();
+
+  const results = useQueries({
+    queries: monthStrings.map(month => ({
+      queryKey: queryKeys.dailyStatusTrend(month),
+      queryFn: async () =>
+        (await api.get<MonthlyTrendResponse>('/metrics/daily-status-trend', {
+          params: { month },
+        })).data,
+    })),
+  });
+
+  return { monthStrings, results };
 }
 
 export function useDailyStatusBreakdown(date?: string) {

@@ -766,6 +766,70 @@ a {
   font-size: 13px;
 }
 
+.status-trend-chart__subtitle {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+
+/* ---------- Chart tooltip ---------- */
+.chart-tooltip {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+  min-width: 160px;
+  font-size: 12px;
+}
+
+.chart-tooltip__date {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 7px;
+  font-size: 12px;
+}
+
+.chart-tooltip__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.chart-tooltip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chart-tooltip__name {
+  flex: 1;
+  color: #374151;
+}
+
+.chart-tooltip__value {
+  font-weight: 600;
+  color: #111827;
+  min-width: 16px;
+  text-align: right;
+}
+
+.chart-tooltip__total {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #f3f4f6;
+  font-weight: 600;
+  color: #374151;
+  text-align: right;
+}
+
+.chart-tooltip__empty {
+  color: var(--muted);
+  font-style: italic;
+}
+
 /* ---------- Chat History ---------- */
 .chat-history {
   display: flex;
@@ -1065,7 +1129,74 @@ a {
   font-weight: 600;
 }
 
-/* ---------- PI Dashboard ---------- */
+/* ---------- Unified Overview page ---------- */
+.page--overview {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.overview__mid {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 820px) {
+  .overview__mid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.finance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.finance-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border-left: 3px solid;
+}
+
+.finance-item--amber {
+  border-left-color: #f59e0b;
+  background: linear-gradient(90deg, #fffbeb 0%, #fff 100%);
+}
+
+.finance-item--green {
+  border-left-color: #10b981;
+  background: linear-gradient(90deg, #f0fdf4 0%, #fff 100%);
+}
+
+.finance-item__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+}
+
+.finance-item__value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.finance-item__sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- PI Dashboard (legacy class kept for backward compat) ---------- */
 .page--dashboard {
   max-width: 1200px;
   margin: 0 auto;
@@ -1078,15 +1209,13 @@ a {
 
 .pi-status-chart {
   background: white;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 1.5rem;
   box-shadow: var(--shadow);
 }
 
-.pi-status-chart h2 {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  color: var(--text);
+.pi-status-chart__header {
+  margin-bottom: 16px;
 }
 
 .pi-status-chart--empty {
@@ -1094,6 +1223,87 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Donut + stats side-by-side */
+.pi-status-chart__body {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.pi-status-chart__donut {
+  position: relative;
+  flex: 0 0 200px;
+}
+
+.pi-status-chart__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.pi-status-chart__total {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.pi-status-chart__total-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pi-status-chart__stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pi-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.pi-stat__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pi-stat__name {
+  flex: 1;
+  color: var(--text);
+}
+
+.pi-stat__count {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 28px;
+  text-align: right;
+}
+
+.pi-stat__pct {
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 34px;
+  text-align: right;
+}
+
+/* ---------- Dashboard trend (full-width row) ---------- */
+.dashboard__trend {
+  margin-top: 16px;
 }
 
 .dashboard__timeline {
@@ -1227,4 +1437,323 @@ a {
 
 .timeline-entry--system {
   opacity: 0.8;
+}
+
+/* ---------- Pagination ---------- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 4px;
+  font-size: 13px;
+}
+
+.pagination__info {
+  color: var(--muted);
+}
+
+.pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination__btn {
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.pagination__btn:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.pagination__btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.pagination__pages {
+  font-weight: 500;
+  color: var(--text);
+  min-width: 52px;
+  text-align: center;
+}
+
+/* ---------- Trend badge (StatusTrendChart) ---------- */
+.trend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.trend-badge--up {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.trend-badge--down {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-trend-chart__peak {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+
+/* ---------- Invoice summary cards ---------- */
+.invoice-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.invoice-stat-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow);
+}
+
+.invoice-stat-card__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+}
+
+.invoice-stat-card__value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.invoice-stat-card__sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- Invoices table enhancements ---------- */
+.filters--invoices {
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.filters__status-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.invoices-table-card {
+  overflow-x: auto;
+}
+
+.invoices-table {
+  min-width: 700px;
+}
+
+/* Sortable column headers */
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable-th:hover {
+  color: var(--primary);
+}
+
+.sort-icon {
+  margin-left: 4px;
+  font-size: 11px;
+}
+
+.sort-icon--idle {
+  color: #d1d5db;
+}
+
+.sort-icon--active {
+  color: var(--primary);
+}
+
+.invoice-link {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.invoice-customer {
+  color: var(--text);
+}
+
+.invoice-amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Overdue row highlight */
+.table__row--overdue {
+  background: #fff7ed;
+}
+
+.table__row--overdue:hover {
+  background: #ffedd5;
+}
+
+.overdue-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  vertical-align: middle;
+}
+
+.overdue-date {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+/* Per-row action buttons */
+.invoice-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.inv-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.inv-btn--view {
+  background: #eff6ff;
+  color: var(--primary);
+}
+
+.inv-btn--view:hover {
+  background: #dbeafe;
+}
+
+.inv-btn--pdf {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.inv-btn--pdf:hover {
+  background: #e5e7eb;
+}
+
+/* ---------- Dashboard KPI Cards ---------- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kpi-card {
+  border-radius: 14px;
+  padding: 22px 24px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  cursor: default;
+  user-select: none;
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+.kpi-card--indigo {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.kpi-card--amber {
+  background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+}
+
+.kpi-card--green {
+  background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+}
+
+.kpi-card--red {
+  background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+}
+
+.kpi-card__value {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.kpi-card__label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  opacity: 0.88;
+}
+
+.kpi-card__trend {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.82;
+  margin-top: 5px;
 }
